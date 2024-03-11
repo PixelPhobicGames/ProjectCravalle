@@ -1,4 +1,4 @@
-#include "Video.hpp"
+#include "OTVideo.hpp"
 #include "raylib.h"
 #include <cstddef>
 
@@ -12,7 +12,6 @@ bool FadeInDone = false;
 bool FadeOutDone = false;
 
 Color FadeColor = (Color){R, G, B, 255};
-
 
 void PlayFadeIn() {
     Direction = 1;

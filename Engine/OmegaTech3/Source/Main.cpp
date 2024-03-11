@@ -2,12 +2,14 @@
 
 /* OT:2: PixelPhobicGames 2023 */
 
+/* OT 3: PixelPhobicGames 2024*/
+
 int main() {
-    
+
     SetConfigFlags(FLAG_VSYNC_HINT);
     SetConfigFlags(FLAG_MSAA_4X_HINT);
 
-    InitWindow(1280, 720, "OT2");
+    InitWindow(1280, 720, "OT3");
     SetTargetFPS(60);
 
     InitAudioDevice();
@@ -28,7 +30,7 @@ int main() {
 
     while (!WindowShouldClose()) {
 
-        #ifdef UseLumina
+#ifdef UseLumina
 
         if (!UseLumina) {
             LuminaDrawWorld();
@@ -38,11 +40,11 @@ int main() {
             ClearBackground(BLACK);
 
             DrawTexturePro(LuminaTarget.texture,
-            (Rectangle){0, 0, LuminaTarget.texture.width, -LuminaTarget.texture.height},
-            (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
-            (Vector2){0, 0},
-            0.f,
-            FadeColor);
+                           (Rectangle){0, 0, LuminaTarget.texture.width, -LuminaTarget.texture.height},
+                           (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
+                           (Vector2){0, 0},
+                           0.f,
+                           FadeColor);
 
             EndDrawing();
 
@@ -52,9 +54,8 @@ int main() {
                 LoadWorld();
                 ExitLuminaFlag = false;
             }
-        }
-        else {
-        #endif
+        } else {
+#endif
 
             if (!ConsoleToggle) {
                 if (UsingCineFlow) {
@@ -67,7 +68,8 @@ int main() {
 
                     OmegaTechData.CameraSpeed = 1;
 
-                    if (IsKeyDown(KEY_SPACE) || IsGamepadButtonDown(0 , GAMEPAD_BUTTON_RIGHT_FACE_DOWN))OmegaTechData.CameraSpeed = 2;
+                    if (IsKeyDown(KEY_SPACE) || IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
+                        OmegaTechData.CameraSpeed = 2;
 
                     if (!OmegaInputController.InteractDown) {
                         for (int i = 0; i <= OmegaTechData.CameraSpeed; i++) {
@@ -86,63 +88,54 @@ int main() {
 
             ClearBackground(BLACK);
 
+            BeginShaderMode(OmegaTechData.Bloom);
+            DrawTexturePro(Target.texture,
+                           (Rectangle){0, 0, Target.texture.width, -Target.texture.height},
+                           (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
+                           (Vector2){0, 0},
+                           0.f,
+                           FadeColor);
 
-                BeginShaderMode(OmegaTechData.Bloom);
-                DrawTexturePro(Target.texture,
-                            (Rectangle){0, 0, Target.texture.width, -Target.texture.height},
-                            (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
-                            (Vector2){0, 0},
-                            0.f,
-                            FadeColor);
+            if (ScriptCollisionMessage) {
+                DisplayInteractText();
+            }
 
-                if (ScriptCollisionMessage) {
-                    DisplayInteractText();
+            if (OmegaTechData.Ticker == 33 || OmegaInputController.InteractPressed || OmegaInputController.TextButton) {
+                ScriptCollisionMessage = false;
+            }
+
+            EndShaderMode();
+
+            if (!UsingCineFlow) {
+                if (UIToggle)
+                    UpdateUI();
+                UpdateCustomUI(OmegaTechData.LevelIndex);
+            }
+
+            if (IsKeyPressed(KEY_TAB)) {
+                if (UIToggle) {
+                    UIToggle = false;
+                } else {
+                    UIToggle = true;
                 }
+            }
 
-                if (OmegaTechData.Ticker == 33 || OmegaInputController.InteractPressed || OmegaInputController.TextButton) {
-                    ScriptCollisionMessage = false;
-                }
+            if (FPSEnabled) {
+                DrawFPS(0, 0);
+            }
 
-                EndShaderMode();
+            if (!UsingCineFlow)
+                OmegaTechTextSystem.Update();
 
-                if (!UsingCineFlow) {
-                    if (UIToggle)UpdateUI();
-                    UpdateCustomUI(OmegaTechData.LevelIndex);
-                }
+            if (ConsoleToggle) {
+                DrawConsole();
+            }
 
-                if (IsKeyPressed(KEY_TAB)){
-                    if (UIToggle){
-                        UIToggle = false;
-                    }
-                    else {
-                        UIToggle = true;
-                    }
-                }
+            EndDrawing();
 
-                if (FPSEnabled) {
-                    DrawFPS(0, 0);
-                }
-
-                if (!UsingCineFlow)
-                    OmegaTechTextSystem.Update();
-
-                if (ConsoleToggle) {
-                    DrawConsole();
-                }
-            
-                EndDrawing();
-
-        #ifdef UseLumina
+#ifdef UseLumina
         }
-        #endif
-        
-
-        if (IsKeyPressed(KEY_F11))
-            ToggleFullscreen();
-
-        if (IsWindowResized()){
-            SetWindowSize(1280 , 720);
-        }
+#endif
 
         if (IsKeyPressed(KEY_F3)) {
             if (ConsoleToggle) {

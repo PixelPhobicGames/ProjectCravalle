@@ -1,0 +1,94 @@
+
+Texture LockTexture Lock
+Sound LockSound Lock
+
+var Inputs 0
+
+var MouseX 0
+var MouseY 0
+
+var Quadrant 0
+
+var TFlag = 0
+
+MouseState 1
+
+:PuzzleLoop
+
+    PullMouse MouseX MouseY
+
+    PullInputs Inputs 
+
+    DrawFrame
+
+    DrawTexture LockTexture 0 0 1
+
+    DrawLine 600 460 MouseX MouseY
+    DrawLine 600 430 MouseX MouseY
+
+    if MouseX < 640
+        if MouseY < 480
+            DrawRectangle 480 350 50 50
+            Quadrant = 0
+        end
+    end
+
+    if MouseX > 640
+        if MouseY < 480
+            DrawRectangle 660 350 50 50
+            Quadrant = 1
+        end
+    end
+
+    if MouseX < 640
+        if MouseY > 480
+            DrawRectangle 470 510 50 50
+            Quadrant = 2
+        end
+    end
+
+    if MouseX > 640
+        if MouseY > 480
+            DrawRectangle 670 510 50 50
+            Quadrant = 3
+        end
+    end
+
+    if Inputs == 9 
+        ReadTFlag 1 TFlag
+
+        if TFlag == 1
+            WriteDialogue Its Empty|&
+            Texture Face4 ParkerExpression4
+            SetFace Face4
+            MouseState 0
+            Kill
+        end
+
+    end 
+
+    if Inputs == 9
+        if Quadrant == 0
+            PlaySound LockSound
+            WriteDialogue You Found a Sweater|&
+            Texture Face4 ParkerExpression4
+            SetFace Face4
+            WriteTFlag 1 1
+            MouseState 0
+            Kill
+        end
+    end
+    else 
+        if Inputs == 9
+            Texture Face3 ParkerExpression3
+            SetFace Face3
+            MouseState 0
+            WriteDialogue That Wasnt It..|&
+            Kill
+        end
+    end
+
+    EndFrame
+
+
+    JumpLabel PuzzleLoop

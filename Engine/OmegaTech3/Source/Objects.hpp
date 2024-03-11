@@ -2,20 +2,18 @@
 
 class GameObject {
   public:
-
 };
 
 static GameObject OmegaTechGameObjects;
 
 void InitObjects() {
-
 }
 
 static int SelectedObject = 1;
 
-void UpdateUI() { 
-    
-    // Implement Your UI Here 
+void UpdateUI() {
+
+    // Implement Your UI Here
 
     if (IsKeyPressed(KEY_LEFT)) {
         if (SelectedObject != 1)

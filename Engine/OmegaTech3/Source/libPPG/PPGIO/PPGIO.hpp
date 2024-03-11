@@ -5,6 +5,7 @@
 #pragma once
 
 #include <chrono>
+#include <cmath>
 #include <codecvt>
 #include <fstream>
 #include <iostream>
@@ -12,7 +13,6 @@
 #include <sstream>
 #include <string>
 #include <utility>
-#include <cmath>
 
 #include "raylib.h"
 

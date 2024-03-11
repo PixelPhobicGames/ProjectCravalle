@@ -1,10 +1,11 @@
 #include "Data.hpp"
 
-
-void UpdateGrassGeneration(){
+void UpdateGrassGeneration() {
     if (GrassEnabled) {
         if (GrassTicker != 60 * 3) {
-            if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) || GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 || GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0)
+            if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
+                GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 ||
+                GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0)
                 GrassTicker++;
         } else {
             GrassTicker = 0;
@@ -27,7 +28,7 @@ void UpdateGrassGeneration(){
             GrassScan = false;
         }
 
-        for (int i = 0; i <= RenderedGrass - 1; i++) { // By Default  Grass Uses FModel 1 
+        for (int i = 0; i <= RenderedGrass - 1; i++) { // By Default  Grass Uses FModel 1
             DrawModelEx(WDLModels.FastModel1, GrassPositions[i], {0, 0, 0}, 0, {1, 1, 1}, WHITE);
         }
     }
@@ -40,27 +41,26 @@ class Custom {
 
 static Custom CustomData;
 
-
 void LoadCustom(int ID) { // Custom  in Engine Level Behavior
-    switch (ID) { } 
+    switch (ID) {}
 }
 
 void UpdateCustom(int ID) {
     switch (ID) {
-        case 1:
-            break;
+    case 1:
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 
 auto UpdateCustomUI(int ID) {
     switch (ID) {
-        case 1:
-            break;
+    case 1:
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 }

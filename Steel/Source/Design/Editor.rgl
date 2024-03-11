@@ -1,0 +1,27 @@
+#
+# rgl layout text file (v4.0) - raygui layout file generated using rGuiLayout
+#
+# Number of controls:     17
+#
+# Ref. window:    r <x> <y> <width> <height>
+# Anchor info:    a <id> <name> <posx> <posy> <enabled>
+# Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
+#
+r 0 40 -1 -1
+c 000 3 Panel000 0 0 1104 720 0 
+c 001 3 Panel001 0 0 1104 24 0 
+c 002 5 Button002 8 0 96 24 0 Project
+c 003 5 Button003 112 0 120 24 0 Save
+c 004 5 Button004 240 0 120 24 0 Undo
+c 005 3 Panel005 288 72 720 600 0 
+c 006 4 Label006 288 48 120 24 0 Scene
+c 007 3 Panel007 24 72 168 600 0 
+c 008 4 Label008 24 48 120 24 0 Model List
+c 009 5 Button009 912 648 88 24 0 FullScreen
+c 010 8 Toggle010 296 648 88 24 0 First Person
+c 011 8 Toggle011 392 648 88 24 0 Free Mode
+c 012 4 Label012 40 648 152 24 0 Drag OBJ to import
+c 013 5 Button013 368 0 120 24 0 Terrain
+c 014 21 ListView014 32 80 136 560 0 Model 1;Model 2;Model3;Model4;
+c 015 5 Button015 496 0 120 24 0 Scripts
+c 016 5 Button016 624 0 120 24 0 Collision Objects

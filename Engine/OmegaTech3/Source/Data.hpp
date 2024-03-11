@@ -1,10 +1,10 @@
 #include "Editor.hpp"
 #include "Entities.hpp"
 
-#include "Misc.hpp"
-#include "Player.hpp"
 #include "External/raygui/Style.h"
-#include "Video.hpp"
+#include "Misc.hpp"
+#include "OTVideo.hpp"
+#include "Player.hpp"
 #include "libPPG/Parasite/ParasiteScript.hpp"
 #include "libPPG/ParticleDemon/ParticleDemon.hpp"
 #include "libPPG/Rumble.hpp"
@@ -13,8 +13,8 @@
 #include "External/rlights/rlights.h"
 #include "raylib.h"
 
-#include <cstddef>
 #include <chrono>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -22,28 +22,25 @@
 
 using namespace std;
 
-
-
 // Define for GBEngine Functionality
 
-// #define UseGBEngine  
-
+// #define UseGBEngine
 
 // Define for Lumina Functionality
 
-// #define UseLumina  
+// #define UseLumina
 
-#ifdef UseLumina  
+#ifdef UseLumina
 
 #include "Lumina/Lumina.hpp"
 
 #endif
 
-#ifdef UseGBEngine 
+#ifdef UseGBEngine
 
 #include "External/GBEngine/GBEngine.hpp"
 
-#endif 
+#endif
 
 #define MaxCachedModels 200
 #define MaxMapSize 2000
@@ -59,7 +56,6 @@ static bool ConsoleToggle = false;
 static bool UIToggle = true;
 static RenderTexture2D Target;
 
-
 static wstring WorldData;
 static wstring OtherWDLData;
 static wstring FinalWDL;
@@ -73,7 +69,6 @@ int RenderedGrass = 320;
 Vector3 GrassPositions[MaxGrass];
 bool GrassScan = true;
 int GrassTicker = 0;
-
 
 class EngineData {
   public:
@@ -114,7 +109,7 @@ class EngineData {
 static EngineData OmegaTechData;
 
 void GenHeights(Image heightmap, Vector3 size) {
-    #define GRAY_VALUE(c) ((float)(c.r + c.g + c.b) / 3.0f)
+#define GRAY_VALUE(c) ((float)(c.r + c.g + c.b) / 3.0f)
 
     int mapX = size.x;
     int mapZ = size.z;
@@ -137,10 +132,8 @@ void GenHeights(Image heightmap, Vector3 size) {
     }
 }
 
-
 class GameModels {
   public:
-
     Vector3 HeightMapPosition;
     int HeightMapW = 0;
     int HeightMapH = 0;
@@ -510,9 +503,9 @@ void DrawConsole() {
     if (IsKeyPressed(KEY_ENTER)) {
         ConsoleParseCommand(TextBox001Text);
         TextBox001Text[0] = '\0';
-        CommandCounter ++;
+        CommandCounter++;
 
-        if (CommandCounter == 2){
+        if (CommandCounter == 2) {
             TextBox002Text[0] = '\0';
             CommandCounter = 0;
         }
@@ -520,31 +513,31 @@ void DrawConsole() {
 }
 
 void CheckKey() {
-    #ifdef Linux
-        char hostname[100];
-        gethostname(hostname, 100);
+#ifdef Linux
+    char hostname[100];
+    gethostname(hostname, 100);
 
-        cout << "USER: " << hostname << "\n";
+    cout << "USER: " << hostname << "\n";
 
-        wstring encodedData = CharArrayToWString(hostname);
-        encodedData = Encode(encodedData, MainKey);
+    wstring encodedData = CharArrayToWString(hostname);
+    encodedData = Encode(encodedData, MainKey);
 
-        if (!IsPathFile("GameData/Key/Key.sig")) {
-            ofstream SigFile("GameData/Key/Key.sig");
+    if (!IsPathFile("GameData/Key/Key.sig")) {
+        ofstream SigFile("GameData/Key/Key.sig");
 
-            if (SigFile.is_open()) {
-                SigFile << TextFormat("%ls", encodedData.c_str());
-                SigFile.close();
-            } else {
-                cerr << "Error opening file for writing.\n";
-            }
+        if (SigFile.is_open()) {
+            SigFile << TextFormat("%ls", encodedData.c_str());
+            SigFile.close();
         } else {
-            wstring Data = LoadFile("GameData/Key/Key.sig");
-
-            if (!(Data[3] == encodedData[3])) {
-                wcout << Data << " != " << encodedData << "\n";
-                exit(0);
-            }
+            cerr << "Error opening file for writing.\n";
         }
-    #endif
+    } else {
+        wstring Data = LoadFile("GameData/Key/Key.sig");
+
+        if (!(Data[3] == encodedData[3])) {
+            wcout << Data << " != " << encodedData << "\n";
+            exit(0);
+        }
+    }
+#endif
 }

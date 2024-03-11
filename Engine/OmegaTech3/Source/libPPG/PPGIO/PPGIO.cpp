@@ -1,21 +1,17 @@
 #include "PPGIO.hpp"
 
 Vector3 Vector3Scale(Vector3 vector, float scale) {
-    Vector3 result = {
-        vector.x * scale,
-        vector.y * scale,
-        vector.z * scale
-    };
+    Vector3 result = {vector.x * scale, vector.y * scale, vector.z * scale};
     return result;
 }
 Vector3 Vector3Add(Vector3 v1, Vector3 v2) {
-    Vector3 result = { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
+    Vector3 result = {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
     return result;
 }
 bool IsPointOnScreen(Vector3 point, Camera camera) {
     Vector2 projectedPoint = GetWorldToScreen(point, camera);
-    return (projectedPoint.x >= -GetScreenWidth() && projectedPoint.x <= GetScreenWidth() * 2&&
-            projectedPoint.y >= -GetScreenHeight()  && projectedPoint.y <= GetScreenHeight() * 2);
+    return (projectedPoint.x >= -GetScreenWidth() && projectedPoint.x <= GetScreenWidth() * 2 &&
+            projectedPoint.y >= -GetScreenHeight() && projectedPoint.y <= GetScreenHeight() * 2);
 }
 
 float GetDistance(float x1, float y1, float x2, float y2) {

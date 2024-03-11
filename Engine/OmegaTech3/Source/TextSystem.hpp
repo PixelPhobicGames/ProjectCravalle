@@ -36,7 +36,8 @@ class TextSystem {
         TextBarColor = {Red, Green, Blue, Red};
 
         if (Red != 0) {
-            // DrawTextureEx(Bar, {0, 720 / 2 - 100}, 0, 2 * ScaleValue, TextBarColor);
+            // DrawTextureEx(Bar, {0, 720 / 2 - 100}, 0, 2 * ScaleValue,
+            // TextBarColor);
         }
 
         if (Trigger) {
