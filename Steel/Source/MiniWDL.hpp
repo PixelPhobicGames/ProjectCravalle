@@ -2,6 +2,10 @@
 
 RenderTexture2D ScenePreview;
 Camera3D SceneCamera = {0};
+
+
+int SteelCameraMode = 3;
+
 wstring WDLData;
 
 
@@ -326,11 +330,11 @@ int ModelSelectorIndex = 0;
 void UpdateSceneCamera(){
     if (IsKeyDown(KEY_SPACE)){
         for (int i = 0 ; i <= 6 ; i ++){
-            UpdateCamera(&SceneCamera , CAMERA_FIRST_PERSON);
+            UpdateCamera(&SceneCamera , SteelCameraMode);
         }
     }
     else {
-        UpdateCamera(&SceneCamera , CAMERA_FIRST_PERSON);
+        UpdateCamera(&SceneCamera , SteelCameraMode);
     }
 }
 
@@ -344,15 +348,16 @@ void RenderWDL(){
         BeginMode3D(SceneCamera);
 
         DrawWDL();
-    
 
 
-        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
-            GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 ||
-            GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0) {
-            SceneCamera.position.y = 8 +
-                                                    TerrainHeightMap[int(SceneCamera.position.z)]
-                                                                    [int(SceneCamera.position.x)];
+        if (SteelCameraMode == 3){
+            if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
+                GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 ||
+                GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0) {
+                SceneCamera.position.y = 8 +
+                                                        TerrainHeightMap[int(SceneCamera.position.z)]
+                                                                        [int(SceneCamera.position.x)];
+            }
         }
 
 
@@ -365,12 +370,13 @@ void RenderWDL(){
             EditorW = SceneCamera.position.x + 5.0f;
             EditorH = SceneCamera.position.y + 5.0f;
             EditorL = SceneCamera.position.z + 5.0f;
-            EditorMID = ModelSelectorIndex;
 
             EditorActive = true;
         }
 
         if (EditorActive){
+            
+            EditorMID = ModelSelectorIndex;
 
             if (EditorMID >= 1 && EditorMID <= 20 || EditorMID >= 201 || EditorMID == -2 || EditorMID == -3){
                 if (EditorMID >= 1 && EditorMID <= 20)DrawModelEx(WDLModelData[EditorMID].Object , {EditorX , EditorY , EditorZ} , {0 , 1 , 0} , EditorRotation , {EditorScale , EditorScale , EditorScale} , WHITE);

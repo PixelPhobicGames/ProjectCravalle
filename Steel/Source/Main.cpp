@@ -13,7 +13,7 @@
 #define MAX_FILEPATH_SIZE       2048
 
 int main(){
-	InitWindow(1104, 720, "OTE");
+	InitWindow(1104, 720, "Steel Editor");
 	SetTargetFPS(60);
 
 	InitMiniWDL();
@@ -123,6 +123,10 @@ int main(){
 				}
 			}
 
+			if (GuiButton((Rectangle){ 624 + 128, 0, 120, 24 }, "Help")){
+				OpenURL(".OTEData/AppData/EditorHelp.pdf");
+			}
+
 			if (GuiButton((Rectangle){ 368, 0, 120, 24 }, "Terrain")){
 				if (TerrainToggle)TerrainToggle = false;
 				else { TerrainToggle = true;}
@@ -154,10 +158,13 @@ int main(){
 			DrawTexturePro(ScenePreview.texture , {0 , 0 , ScenePreview.texture.width , -ScenePreview.texture.height} , {288, 72 , 720, 600} , {0, 0} , 0.0f , WHITE);
 
 
-			GuiButton((Rectangle){ 296, 648, 88, 24 }, "First Person");
+			if (GuiButton((Rectangle){ 296 - 8, 648 + 26, 88, 24 }, "First Person")){
+				SteelCameraMode = 3;
+			}
 
-
-			GuiToggle((Rectangle){ 392, 648, 88, 24 }, "Free Mode", &FreeToggle);
+			if (GuiButton((Rectangle){ 392 - 8, 648 + 26, 88, 24 }, "Free Mode")){
+				SteelCameraMode = 1;
+			}
 
 			if (GuiButton((Rectangle){ 912 + 100, 648, 88, 24 }, "FullScreen")){
 				if (FullscreenMode == false){
@@ -201,6 +208,11 @@ int main(){
 						system(TextFormat("echo "" >> .OTEData/Working/Models/Model%iTexture.png" , ModelLoaderIndex));
 						system(TextFormat("mv '%s' .OTEData/Working/Models/Model%i.obj" , MLModelPath.c_str() , ModelLoaderIndex));
 						system(TextFormat("mv '%s' .OTEData/Working/Models/Model%iTexture.png" , MLTexturePath.c_str() , ModelLoaderIndex));
+					#elif _WIN32
+						system(TextFormat("echo. >> .OTEData\\Working\\Models\\Model%i.obj" , ModelLoaderIndex));
+						system(TextFormat("echo. >> .OTEData\\Working\\Models\\Model%iTexture.png" , ModelLoaderIndex));
+						system(TextFormat("move \"%s\" .OTEData\\Working\\Models\\Model%i.obj" , MLModelPath.c_str() , ModelLoaderIndex));
+						system(TextFormat("move \"%s\" .OTEData\\Working\\Models\\Model%iTexture.png" , MLTexturePath.c_str() , ModelLoaderIndex));
 					#endif
 
 					MLTexturePath = "";
@@ -310,6 +322,9 @@ int main(){
 					#ifdef __linux__ 
 						system("rm -r .OTEData/Working");
 						system("mkdir .OTEData/Working ");
+					#elif _WIN32
+						system("rmdir /s /q .OTEData\\Working");
+						system("mkdir .OTEData\\Working ");
 					#endif
 
 					SetupNewProject();
@@ -377,6 +392,11 @@ int main(){
 							system("mkdir Exports");
 							system(TextFormat("mkdir Exports/%s/" , DEName));
 							system(TextFormat("cp -r .OTEData/Working/* Exports/%s/ " , DEName));
+							DEProgress = 1.0f;
+						#elif _WIN32
+							system("mkdir Exports");
+							system(TextFormat("mkdir Exports\\%s\\", DEName));
+							system(TextFormat("xcopy /s .OTEData\\Working\\* Exports\\%s\\", DEName));
 							DEProgress = 1.0f;
 						#endif
 					}

@@ -79,6 +79,8 @@ int GuiModelSelector(string List){
 void SetupNewProject(){
     #ifdef __linux__
         system("cp -r .OTEData/BaseProject/* .OTEData/Working");
+    #elif _WIN32
+        system("xcopy /s .OTEData\\BaseProject\\* .OTEData\\Working\\");
     #endif
 }
 
