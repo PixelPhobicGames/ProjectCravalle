@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include "rlgl.h"
 #include "PPGIO/PPGIO.hpp"
 
 #include <string>
@@ -14,24 +15,93 @@ bool FullscreenMode = false;
 
 int SelectorID = 1;
 
+
+
+Image WorkingHMData;
+Texture WorkingHM;
+int WHMWidth;
+
+Image ColourMask;
+
+
+Color clampColor(Color c) {
+    c.r = (c.r > 255) ? 255 : (c.r < 0) ? 0 : c.r;
+    c.g = (c.g > 255) ? 255 : (c.g < 0) ? 0 : c.g;
+    c.b = (c.b > 255) ? 255 : (c.b < 0) ? 0 : c.b;
+    return c;
+}
+
+Image addImagesColor(Image dest, Image src) {
+    Color *destpixels = LoadImageColors(dest);
+    Color *srcpixels = LoadImageColors(src);
+
+    int w = dest.width;
+
+    Image Out = GenImageColor(w, w, BLACK);
+
+    // Iterate over each pixel in the images
+    for (int x = 0; x <= w - 1; x++) {
+        for (int y = 0; y <= w - 1; y++) {
+            // Add the color values together
+            Color destPixel = destpixels[y * w + x];
+            Color srcPixel = srcpixels[y * w + x];
+
+
+            Color currentPixel;
+            int Red = abs(destPixel.r + srcPixel.r);
+            int Blue = abs(destPixel.g + srcPixel.g);
+            int Green = abs(destPixel.b + srcPixel.b);
+
+            currentPixel.r = Red;
+            currentPixel.g = Green;
+            currentPixel.b = Blue;
+            currentPixel.a = 255;
+
+            currentPixel = clampColor(currentPixel);
+
+            // Draw pixel onto output image
+            ImageDrawPixel(&Out, x, y, currentPixel);
+        }
+    }
+
+    UnloadImageColors(destpixels);
+    UnloadImageColors(srcpixels);
+
+    return Out;
+}
+
+
+void InitHMEditor(){
+    WHMWidth = PullConfigValue(".OTEData/Working/Config/HeightMap.conf" , 0);
+    ColourMask = GenImageColor(WHMWidth , WHMWidth , BLACK);
+    WorkingHMData = LoadImage(".OTEData/Working/Models/HeightMap.png");
+    WorkingHM = LoadTextureFromImage(WorkingHMData);
+
+    
+}
+
 Image TerrainGeneration;
 Texture2D TerrainGenerationTexture;
 
 
 void InitTG(){
-
     int Width = PullConfigValue(".OTEData/Working/Config/HeightMap.conf" , 0);
 
     TerrainGeneration = GenImageColor(Width , Width , BLACK);
     TerrainGenerationTexture = LoadTextureFromImage(TerrainGeneration);
-
 }
+
+int Depth = 0;
 
 void CreateTerrain(float Value){
     int Width = PullConfigValue(".OTEData/Working/Config/HeightMap.conf" , 0);
-    TerrainGeneration = GenImagePerlinNoise(Width , Width , GetRandomValue(0 , 1000), GetRandomValue(0 , 1000), Value); 
+
+    TerrainGeneration = GenImagePerlinNoise(Width, Width, GetRandomValue(0 , 1000), GetRandomValue(0 , 1000), Value); 
+
+    ImageColorBrightness(&TerrainGeneration, Depth);
 
     TerrainGenerationTexture = LoadTextureFromImage(TerrainGeneration);
+
 }
 
 

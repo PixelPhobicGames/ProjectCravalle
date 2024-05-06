@@ -99,13 +99,7 @@ int PullConfigValue(const char *Path, int ValueIndex) {
 
     configFile.close();
 
-#ifdef Windows
     stringstream ss(line);
-#endif
-
-#ifdef Linux
-    stringstream ss(line);
-#endif
 
     string token;
     int index = 0;

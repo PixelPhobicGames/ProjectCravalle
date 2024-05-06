@@ -1,13 +1,17 @@
 #include "libPPG/PPGIO/PPGIO.hpp"
 
+
+
+// Inventory System
+
+// Working on a Remaster
+
 class GameObject {
   public:
 };
 
 static GameObject OmegaTechGameObjects;
 
-void InitObjects() {
-}
 
 static int SelectedObject = 1;
 

@@ -31,9 +31,13 @@
 *.out
 *.app
 
+#
+.vscode/
+
 # GameData 
 
-Engine/OmegaTech2/GameData
+Engine/OmegaTech3/GameData
+Steel/.OTEData/Working/
 
 # Linux Ex 
 

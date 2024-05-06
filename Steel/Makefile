@@ -1,6 +1,6 @@
 ifeq ($(PLATFORM), Windows)
-	CFLAGS = -O3 -g
-	LDFLAGS = -static-libgcc -static-libstdc++ -static -Wall -Iexternal -DPLATFORM_DESKTOP -lopengl32 -lraylib -lgdi32 -lwinmm -lpthread
+	CFLAGS = -O2 --std=c++20 -g
+	LDFLAGS = -static -Wall -Iexternal -DPLATFORM_DESKTOP -lopengl32 -lraylib -lgdi32 -lwinmm -lpthread
 	COMP = g++.exe
 	BUILD_DIR = Build
 else
@@ -36,7 +36,7 @@ $(BUILD_DIR)/PPGIO.o: Source/PPGIO/PPGIO.cpp
 
 .PHONY: clean
 clean:
-	rm -f $(BUILD_DIR)/*.o OTENGINE
+	rm -f $(BUILD_DIR)/*.o OTENGINE OTENGINE.exe 
 
 # Target to run clang-format on all C++ files
 .PHONY: format

@@ -2,11 +2,8 @@
 
 void LoadSave();
 void SaveGame();
-void CacheWDL();
-void PutLight(Vector3 Position);
-void ClearLights();
 
-class ParticleSystem;
+void CacheWDL();
 
 void SpawnWDLProcess(const char *Path) {
     wstring WData;
@@ -47,14 +44,12 @@ void LoadWorld() {
     GrassScan = true;
 
 #ifdef UseGBEngine
-
     if (IsPathFile(TextFormat("GameData/Worlds/World%i/Scene.gb", OmegaTechData.LevelIndex))) {
         InitGB(convertToChar(TextFormat("GameData/Worlds/World%i/Scene.gb", OmegaTechData.LevelIndex)));
         RunGB();
 
         OmegaTechData.LevelIndex++;
     }
-
 #endif
 
     PlayFadeIn();
@@ -108,15 +103,19 @@ void LoadWorld() {
         AmbientLightValues[3] = Alpha;
     }
 
-    LODWDLModels.ClearModelInfo();
+    //LODWDLModels.ClearModelInfo();
+
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OmegaTechData.LevelIndex))) {
+        OTSkybox.LoadSkybox(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OmegaTechData.LevelIndex));
+    }
 
     if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OmegaTechData.LevelIndex))) {
-        WDLModels.HeightMapW =
+        TerrainData.HeightMapW =
             PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OmegaTechData.LevelIndex), 0);
-        WDLModels.HeightMapH =
+        TerrainData.HeightMapH =
             PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OmegaTechData.LevelIndex), 1);
 
-        WDLModels.HeightMapTexture =
+        TerrainData.HeightMapTexture =
             LoadTexture(TextFormat("GameData/Worlds/World%i/Models/HeightMapTexture.png", OmegaTechData.LevelIndex));
         Image HeightMapImage =
             LoadImage(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OmegaTechData.LevelIndex));
@@ -125,509 +124,66 @@ void LoadWorld() {
         // Generate Height map Unless pregenerated one exists.
 
         if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OmegaTechData.LevelIndex))) {
-            WDLModels.HeightMap =
+            TerrainData.HeightMap =
                 LoadModel(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OmegaTechData.LevelIndex));
-            WDLModels.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.HeightMapTexture;
-            WDLModels.HeightMap.materials[0].shader = OmegaTechData.Lights;
+            TerrainData.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = TerrainData.HeightMapTexture;
+            TerrainData.HeightMap.materials[0].shader = OmegaTechData.Lights;
         } else {
             Mesh Mesh1 = GenMeshHeightmap(HeightMapImage,
-                                          (Vector3){WDLModels.HeightMapW, WDLModels.HeightMapH, WDLModels.HeightMapW});
+                                          (Vector3){TerrainData.HeightMapW, TerrainData.HeightMapH, TerrainData.HeightMapW});
 
-            WDLModels.HeightMap = LoadModelFromMesh(Mesh1);
-            WDLModels.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.HeightMapTexture;
-            WDLModels.HeightMap.meshes[0] = Mesh1;
-            WDLModels.HeightMap.materials[0].shader = OmegaTechData.Lights;
+            TerrainData.HeightMap = LoadModelFromMesh(Mesh1);
+            TerrainData.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = TerrainData.HeightMapTexture;
+            TerrainData.HeightMap.meshes[0] = Mesh1;
+            TerrainData.HeightMap.materials[0].shader = OmegaTechData.Lights;
         }
 
-        GenHeights(HeightMapImage, {(Vector3){WDLModels.HeightMapW, WDLModels.HeightMapH, WDLModels.HeightMapW}});
+        GenHeights(HeightMapImage, {(Vector3){TerrainData.HeightMapW, TerrainData.HeightMapH, TerrainData.HeightMapW}});
     }
 
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model1.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model1 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model1.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model1Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model1Texture.png", OmegaTechData.LevelIndex));
+    for (int i = 1; i <= ModelCount - 1; i ++){
 
-        SetTextureFilter(WDLModels.Model1Texture, TEXTURE_FILTER_TRILINEAR);
+        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OmegaTechData.LevelIndex , i))){
+            WDLModels[i].ModelData = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OmegaTechData.LevelIndex , i));
+            WDLModels[i].ModelTexture = LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OmegaTechData.LevelIndex , i));
+            SetTextureFilter(WDLModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
+            WDLModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels[i].ModelTexture;
+            WDLModels[i].ModelData.materials[0].shader = OmegaTechData.Lights;
 
-        WDLModels.Model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model1Texture;
-        WDLModels.Model1.materials[0].shader = OmegaTechData.Lights;
+            if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OmegaTechData.LevelIndex , i))){
+                WLowDetailModels[i].ModelData = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OmegaTechData.LevelIndex , i));
+                WLowDetailModels[i].ModelTexture = LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OmegaTechData.LevelIndex , i));
+                SetTextureFilter(WLowDetailModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
+                WLowDetailModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WLowDetailModels[i].ModelTexture;
+                WLowDetailModels[i].ModelData.materials[0].shader =  OmegaTechData.Lights;
+                LowDetail[i] = true;
+            }
+            else {
+                LowDetail[i] = false;
+            }
+        }
 
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model1LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model1 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model1LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model1Texture;
-            LODWDLModels.Model1.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel1 = true;
+        else {
+
+            /*
+            UnloadModel(WDLModels[i].ModelData);
+            UnloadTexture(WDLModels[i].ModelTexture);
+    
+            if (LowDetail[i]){
+                UnloadModel(WDLModels[i].ModelData);
+                UnloadTexture(WDLModels[i].ModelTexture);
+            }
+            */
         }
-    } else {
-        if (WDLModels.Model1.meshCount != 0) {
-            UnloadModel(WDLModels.Model1);
-        }
-        if (WDLModels.Model1Texture.id != 0) {
-            UnloadTexture(WDLModels.Model1Texture);
-        }
+
+        
     }
 
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model2.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model2 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model2.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model2Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model2Texture.png", OmegaTechData.LevelIndex));
-
-        SetTextureFilter(WDLModels.Model2Texture, TEXTURE_FILTER_TRILINEAR);
-
-        WDLModels.Model2.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model2Texture;
-        WDLModels.Model2.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model2LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model2 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model2LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model2.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model2Texture;
-            LODWDLModels.Model2.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel2 = true;
-        }
-    } else {
-        if (WDLModels.Model2.meshCount != 0) {
-            UnloadModel(WDLModels.Model2);
-        }
-        if (WDLModels.Model2Texture.id != 0) {
-            UnloadTexture(WDLModels.Model2Texture);
-        }
-    }
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model3.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model3 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model3.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model3Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model3Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model3Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model3.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model3Texture;
-        WDLModels.Model3.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model3LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model3 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model3LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model3.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model3Texture;
-            LODWDLModels.Model3.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel3 = true;
-        }
-    } else {
-        if (WDLModels.Model3.meshCount != 0) {
-            UnloadModel(WDLModels.Model13);
-        }
-        if (WDLModels.Model3Texture.id != 0) {
-            UnloadTexture(WDLModels.Model3Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model4.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model4 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model4.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model4Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model4Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model4Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model4.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model4Texture;
-        WDLModels.Model4.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model4LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model4 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model4LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model4.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model4Texture;
-            LODWDLModels.Model4.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel4 = true;
-        }
-    } else {
-        if (WDLModels.Model4.meshCount != 0) {
-            UnloadModel(WDLModels.Model4);
-        }
-        if (WDLModels.Model4Texture.id != 0) {
-            UnloadTexture(WDLModels.Model4Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model5.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model5 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model5.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model5Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model5Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model5Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model5.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model5Texture;
-        WDLModels.Model5.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model5LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model5 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model5LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model5.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model5Texture;
-            LODWDLModels.Model5.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel5 = true;
-        }
-    } else {
-        if (WDLModels.Model5.meshCount != 0) {
-            UnloadModel(WDLModels.Model5);
-        }
-        if (WDLModels.Model5Texture.id != 0) {
-            UnloadTexture(WDLModels.Model5Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model6.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model6 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model6.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model6Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model6Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model6Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model6.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model6Texture;
-        WDLModels.Model6.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model6LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model6 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model6LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model6.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model6Texture;
-            LODWDLModels.Model6.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel6 = true;
-        }
-    } else {
-        if (WDLModels.Model6.meshCount != 0) {
-            UnloadModel(WDLModels.Model6);
-        }
-        if (WDLModels.Model6Texture.id != 0) {
-            UnloadTexture(WDLModels.Model6Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model7.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model7 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model7.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model7Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model7Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model7Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model7.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model7Texture;
-        WDLModels.Model7.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model7LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model7 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model7LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model7.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model7Texture;
-            LODWDLModels.Model7.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel7 = true;
-        }
-
-    } else {
-        if (WDLModels.Model7.meshCount != 0) {
-            UnloadModel(WDLModels.Model7);
-        }
-        if (WDLModels.Model7Texture.id != 0) {
-            UnloadTexture(WDLModels.Model7Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model8.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model8 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model8.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model8Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model8Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model8Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model8.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model8Texture;
-        WDLModels.Model8.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model8LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model8 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model8LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model8.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model8Texture;
-            LODWDLModels.Model8.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel8 = true;
-        }
-
-    } else {
-        if (WDLModels.Model8.meshCount != 0) {
-            UnloadModel(WDLModels.Model8);
-        }
-        if (WDLModels.Model8Texture.id != 0) {
-            UnloadTexture(WDLModels.Model8Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model9.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model9 = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model9.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model9Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model9Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model9Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model9.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model9Texture;
-        WDLModels.Model9.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model9LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model9 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model9LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model9.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model9Texture;
-            LODWDLModels.Model9.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel9 = true;
-        }
-
-    } else {
-        if (WDLModels.Model9.meshCount != 0) {
-            UnloadModel(WDLModels.Model9);
-        }
-        if (WDLModels.Model9Texture.id != 0) {
-            UnloadTexture(WDLModels.Model9Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model10.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model10 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model10.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model10Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model10Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model10Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model10.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model10Texture;
-        WDLModels.Model10.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model10LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model10 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model10LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model10.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model10Texture;
-            LODWDLModels.Model10.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel10 = true;
-        }
-
-    } else {
-        if (WDLModels.Model10.meshCount != 0) {
-            UnloadModel(WDLModels.Model10);
-        }
-        if (WDLModels.Model10Texture.id != 0) {
-            UnloadTexture(WDLModels.Model10Texture);
-        }
-    }
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model11.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model11 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model11.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model11Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model11Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model11Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model11.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model11Texture;
-        WDLModels.Model11.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model11LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model11 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model11LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model11.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model11Texture;
-            LODWDLModels.Model11.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel11 = true;
-        }
-
-    } else {
-        if (WDLModels.Model11.meshCount != 0) {
-            UnloadModel(WDLModels.Model11);
-        }
-        if (WDLModels.Model11Texture.id != 0) {
-            UnloadTexture(WDLModels.Model11Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model12.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model12 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model12.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model12Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model12Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model12Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model12.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model12Texture;
-        WDLModels.Model12.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model12LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model12 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model12LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model12.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model12Texture;
-            LODWDLModels.Model12.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel12 = true;
-        }
-
-    } else {
-        if (WDLModels.Model12.meshCount != 0) {
-            UnloadModel(WDLModels.Model12);
-        }
-        if (WDLModels.Model12Texture.id != 0) {
-            UnloadTexture(WDLModels.Model12Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model13.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model13 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model13.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model13Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model13Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model13Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model13.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model13Texture;
-        WDLModels.Model13.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model13LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model13 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model13LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model13.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model13Texture;
-            LODWDLModels.Model13.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel13 = true;
-        }
-
-    } else {
-        if (WDLModels.Model13.meshCount != 0) {
-            UnloadModel(WDLModels.Model13);
-        }
-        if (WDLModels.Model13Texture.id != 0) {
-            UnloadTexture(WDLModels.Model13Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model14.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model14 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model14.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model14Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model14Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model14Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model14.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model14Texture;
-        WDLModels.Model14.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model14LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model14 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model14LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model14.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model14Texture;
-            LODWDLModels.Model14.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel14 = true;
-        }
-
-    } else {
-        if (WDLModels.Model14.meshCount != 0) {
-            UnloadModel(WDLModels.Model14);
-        }
-        if (WDLModels.Model14Texture.id != 0) {
-            UnloadTexture(WDLModels.Model14Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model15.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model15 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model15.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model15Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model15Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model15Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model15.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model15Texture;
-        WDLModels.Model15.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model15LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model15 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model15LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model15.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model15Texture;
-            LODWDLModels.Model15.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel15 = true;
-        }
-
-    } else {
-        if (WDLModels.Model15.meshCount != 0) {
-            UnloadModel(WDLModels.Model15);
-        }
-        if (WDLModels.Model15Texture.id != 0) {
-            UnloadTexture(WDLModels.Model15Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model16.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model16 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model16.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model16Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model16Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model16Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model16.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model16Texture;
-        WDLModels.Model16.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model16LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model16 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model16LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model16.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model16Texture;
-            LODWDLModels.Model16.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel16 = true;
-        }
-
-    } else {
-        if (WDLModels.Model16.meshCount != 0) {
-            UnloadModel(WDLModels.Model16);
-        }
-        if (WDLModels.Model16Texture.id != 0) {
-            UnloadTexture(WDLModels.Model16Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model17.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model17 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model17.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model17Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model17Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model17Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model17.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model17Texture;
-        WDLModels.Model17.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model17LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model17 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model17LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model17.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model17Texture;
-            LODWDLModels.Model17.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel17 = true;
-        }
-
-    } else {
-        if (WDLModels.Model17.meshCount != 0) {
-            UnloadModel(WDLModels.Model17);
-        }
-        if (WDLModels.Model17Texture.id != 0) {
-            UnloadTexture(WDLModels.Model17Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model18.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model18 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model18.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model18Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model18Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model18Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model18.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model18Texture;
-        WDLModels.Model18.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model18LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model18 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model18LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model18.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model18Texture;
-            LODWDLModels.Model18.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel18 = true;
-        }
-
-    } else {
-        if (WDLModels.Model18.meshCount != 0) {
-            UnloadModel(WDLModels.Model18);
-        }
-        if (WDLModels.Model18Texture.id != 0) {
-            UnloadTexture(WDLModels.Model18Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model19.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model19 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model19.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model19Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model19Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model19Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model19.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model19Texture;
-        WDLModels.Model19.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model19LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model19 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model19LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model19.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model19Texture;
-            LODWDLModels.Model19.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel19 = true;
-        }
-
-    } else {
-        if (WDLModels.Model19.meshCount != 0) {
-            UnloadModel(WDLModels.Model19);
-        }
-        if (WDLModels.Model19Texture.id != 0) {
-            UnloadTexture(WDLModels.Model19Texture);
-        }
-    }
-
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model20.obj", OmegaTechData.LevelIndex))) {
-        WDLModels.Model20 =
-            LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model20.obj", OmegaTechData.LevelIndex));
-        WDLModels.Model20Texture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model20Texture.png", OmegaTechData.LevelIndex));
-        SetTextureFilter(WDLModels.Model20Texture, TEXTURE_FILTER_TRILINEAR);
-        WDLModels.Model20.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model20Texture;
-        WDLModels.Model20.materials[0].shader = OmegaTechData.Lights;
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model20LOD.obj", OmegaTechData.LevelIndex))) {
-            LODWDLModels.Model20 =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model20LOD.obj", OmegaTechData.LevelIndex));
-            LODWDLModels.Model20.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.Model20Texture;
-            LODWDLModels.Model20.materials[0].shader = OmegaTechData.Lights;
-            LODWDLModels.LODAvailableModel20 = true;
-        }
-
-    } else {
-        if (WDLModels.Model20.meshCount != 0) {
-            UnloadModel(WDLModels.Model20);
-        }
-        if (WDLModels.Model20Texture.id != 0) {
-            UnloadTexture(WDLModels.Model20Texture);
-        }
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex))){
+        SunLightValues.r = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 0);
+        SunLightValues.g = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 1);
+        SunLightValues.b = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 2);
+        SunLightValues.a = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 3);
     }
 
     if (GameDataEncoded) {
@@ -693,92 +249,7 @@ void LoadWorld() {
     LoadCustom(OmegaTechData.LevelIndex);
 }
 
-void LoadLaunchConfig() {
-    wstring Config = LoadFile("GameData/Launch.conf");
-
-    wstring Resolution = WSplitValue(Config, 0);
-
-    switch (Resolution[0]) {
-    case L'1':
-        SetWindowSize(640, 480);
-        break;
-    case L'2':
-        SetWindowSize(1280, 720);
-        break;
-    case L'3':
-        SetWindowSize(1980, 1080);
-        break;
-    case L'4':
-        SetWindowSize(2560, 1440);
-        break;
-    case L'5':
-        SetWindowSize(3840, 2160);
-        break;
-    default:
-        SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
-        ToggleFullscreen();
-        break;
-    }
-}
-
-int LightCounter = 1;
-
-void UpdateLightSources() {
-    float CameraPos[3] = {OmegaTechData.MainCamera.position.x,
-                          OmegaTechData.MainCamera.position.y,
-                          OmegaTechData.MainCamera.position.z};
-
-    if (IsMouseButtonDown(1)) {
-        OmegaTechData.GameLights[0].position = {OmegaTechData.MainCamera.position.x,
-                                                OmegaTechData.MainCamera.position.y,
-                                                OmegaTechData.MainCamera.position.z};
-        OmegaTechData.GameLights[0].target = OmegaTechData.MainCamera.target;
-        SetShaderValue(OmegaTechData.Lights,
-                       OmegaTechData.Lights.locs[SHADER_LOC_VECTOR_VIEW],
-                       CameraPos,
-                       SHADER_UNIFORM_VEC3);
-    } else {
-        OmegaTechData.GameLights[0].position = {-1000, -1000, -1000};
-        OmegaTechData.GameLights[0].target = {-1000, -1000, -1000};
-        SetShaderValue(OmegaTechData.Lights,
-                       OmegaTechData.Lights.locs[SHADER_LOC_VECTOR_VIEW],
-                       CameraPos,
-                       SHADER_UNIFORM_VEC3);
-    }
-
-    for (int i = 0; i < MAX_LIGHTS - 1; i++)
-        UpdateLightValues(OmegaTechData.Lights, OmegaTechData.GameLights[i]);
-
-    int AmbientLoc = GetShaderLocation(OmegaTechData.Lights, "ambient");
-    SetShaderValue(OmegaTechData.Lights, AmbientLoc, AmbientLightValues, SHADER_UNIFORM_VEC4);
-}
-
-void ClearLights() {
-    LightCounter = 1;
-    OmegaTechData.GameLights[MAX_LIGHTS] = {0};
-}
-
-void PutLight(Vector3 Position) {
-    OmegaTechData.GameLights[LightCounter] =
-        CreateLight(LIGHT_DIRECTIONAL, Position, {0, 0, 0}, WHITE, OmegaTechData.Lights);
-    LightCounter++;
-}
-
-void DrawLights() {
-    for (int i = 1; i < MAX_LIGHTS; i++) {
-        if (OmegaTechData.GameLights[i].enabled)
-            DrawSphereEx(OmegaTechData.GameLights[i].position, 0.2f, 8, 8, OmegaTechData.GameLights[i].color);
-        else
-            DrawSphereWires(OmegaTechData.GameLights[i].position,
-                            0.2f,
-                            8,
-                            8,
-                            ColorAlpha(OmegaTechData.GameLights[i].color, 0.3f));
-    }
-}
-
 void OmegaTechInit() {
-    LoadLaunchConfig();
     ParasiteScriptTFlagWipe();
 
     GuiLoadStyle();
@@ -790,8 +261,8 @@ void OmegaTechInit() {
     OmegaTechData.InitCamera();
 
     OmegaTechData.Bloom = LoadShader(0, "GameData/Shaders/Bloom.fs");
-
     OmegaTechData.Lights = LoadShader("GameData/Shaders/Lights/Lighting.vs", "GameData/Shaders/Lights/Fog.fs");
+
     OmegaTechData.GameLights[MAX_LIGHTS] = {0};
 
     OmegaTechData.Lights.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(OmegaTechData.Lights, "viewPos");
@@ -823,44 +294,17 @@ void OmegaTechInit() {
     OmegaTechTextSystem.TextNoise = LoadSound("GameData/Global/Sounds/TalkingNoise.mp3");
     OmegaTechData.Cursor = LoadTexture("GameData/Global/Cursor.png");
 
-    if (IsPathFile("GameData/Global/FModels/FModel1.gltf")) {
-        WDLModels.FastModel1 = LoadModel("GameData/Global/FModels/FModel1.gltf");
-        WDLModels.FastModel1Texture = LoadTexture("GameData/Global/FModels/FModel1Texture.png");
-        WDLModels.FastModel1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.FastModel1Texture;
-        WDLModels.FastModel1.materials[0].shader = OmegaTechData.Lights;
-    }
-    if (IsPathFile("GameData/Global/FModels/FModel2.gltf")) {
-        WDLModels.FastModel2 = LoadModel("GameData/Global/FModels/FModel2.gltf");
-        WDLModels.FastModel2Texture = LoadTexture("GameData/Global/FModels/FModel2Texture.png");
-        WDLModels.FastModel2.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.FastModel2Texture;
-        WDLModels.FastModel2.materials[0].shader = OmegaTechData.Lights;
-    }
-    if (IsPathFile("GameData/Global/FModels/FModel3.gltf")) {
-        WDLModels.FastModel3 = LoadModel("GameData/Global/FModels/FModel3.gltf");
-        WDLModels.FastModel3Texture = LoadTexture("GameData/Global/FModels/FModel3Texture.png");
-        WDLModels.FastModel3.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.FastModel3Texture;
-        WDLModels.FastModel3.materials[0].shader = OmegaTechData.Lights;
-    }
-    if (IsPathFile("GameData/Global/FModels/FModel4.gltf")) {
-        WDLModels.FastModel4 = LoadModel("GameData/Global/FModels/FModel4.gltf");
-        WDLModels.FastModel4Texture = LoadTexture("GameData/Global/FModels/FModel4Texture.png");
-        WDLModels.FastModel4.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.FastModel4Texture;
-        WDLModels.FastModel4.materials[0].shader = OmegaTechData.Lights;
-    }
-    if (IsPathFile("GameData/Global/FModels/FModel5.gltf")) {
-        WDLModels.FastModel5 = LoadModel("GameData/Global/FModels/FModel5.gltf");
-        WDLModels.FastModel5Texture = LoadTexture("GameData/Global/FModels/FModel5Texture.png");
-        WDLModels.FastModel5.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels.FastModel5Texture;
-        WDLModels.FastModel5.materials[0].shader = OmegaTechData.Lights;
+    for (int i = 1 ; i <= 5; i ++){
+        if (IsPathFile(TextFormat("GameData/Global/FModels/FModel%i.gltf", i))) {
+            FastModels[i].ModelData = LoadModel(TextFormat("GameData/Global/FModels/FModel%i.gltf", i));
+            FastModels[i].ModelTexture = LoadTexture(TextFormat("GameData/Global/FModels/FModel%iTexture.png", i));
+            FastModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = FastModels[i].ModelTexture;
+            FastModels[i].ModelData.materials[0].shader = OmegaTechData.Lights;
+        }
     }
 
-    Color LightColor = {1, 1, 1, 1};
-
-    OmegaTechData.GameLights[0] =
-        CreateLight(LIGHT_DIRECTIONAL, OmegaTechData.MainCamera.target, {0, 0, 0}, LightColor, OmegaTechData.Lights);
 
     Target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
-
     ParasiteTarget = LoadRenderTexture(1280, 720);
 
     WorldData.reserve(MaxWStringAlloc);
@@ -869,10 +313,12 @@ void OmegaTechInit() {
 
     FinalWDL.reserve(MaxWStringAlloc * 3);
 
-    InitObjects();
+    OTSkybox.InitSkybox();
 
     PlayMusicStream(OmegaTechData.HomeScreenMusic);
 }
+
+
 
 void PlayFMV() {
     ray_video_t FMVVideo;
@@ -959,7 +405,11 @@ void PlayHomeScreen() {
             UnloadMusicStream(OmegaTechData.HomeScreenMusic);
             ray_video_destroy(&OmegaTechData.HomeScreenVideo);
 
-            PlayFMV();
+            // PlayFMV();
+            
+            UnloadRenderTexture(Target);
+            Target = LoadRenderTexture(GetScreenWidth() , GetScreenHeight() );
+
 
             break;
         }
@@ -1128,61 +578,6 @@ void CacheWDL() { // Save Model Info for faster Access
     }
 }
 
-BoundingBox CalculateBoundingBox(float initialX, float initialY, float initialZ, float scale) {
-    BoundingBox box;
-
-    float halfExtentX = 1.5 * scale;
-    float halfExtentY = 1.5 * scale;
-    float halfExtentZ = 1.5 * scale;
-
-    box.min.x = initialX - halfExtentX;
-    box.min.y = initialY - halfExtentY;
-    box.min.z = initialZ - halfExtentZ;
-
-    box.max.x = initialX + halfExtentX;
-    box.max.y = initialY + halfExtentY;
-    box.max.z = initialZ + halfExtentZ;
-
-    return box;
-}
-
-Vector3 PointAverage[100];
-
-bool IsModelOnScreen(Model Object, Vector3 modelPosition, float Scale) {
-    int VertCount = Object.meshes->vertexCount;
-
-    // Ensure we do not go beyond the available vertices
-    int maxPoints = (VertCount < 100) ? VertCount : 100;
-
-    // Calculate a step to evenly sample points from the model
-    int step = (float)VertCount / maxPoints;
-
-    // Assuming vertices is a float *
-    float *floatVertices = Object.meshes->vertices;
-
-    for (int i = 0; i < maxPoints; i++) {
-        int index = (int)(i * step);
-
-        // Interpret float value as Vector3
-        Vector3 vertex = {floatVertices[index * 3], floatVertices[index * 3 + 1], floatVertices[index * 3 + 2]};
-
-        // Apply scaling
-        PointAverage[i] = Vector3Scale(vertex, Scale);
-
-        // Translate by the model's position
-        PointAverage[i] = Vector3Add(PointAverage[i], modelPosition);
-    }
-
-    // Check if any of the points are on the screen
-    for (int i = 0; i < maxPoints; i++) {
-        if (IsPointOnScreen(PointAverage[i], OmegaTechData.MainCamera)) {
-            return true; // At least one point is on screen
-        }
-    }
-
-    return false; // No points are on screen
-}
-
 void CWDLProcess() {
     for (int i = 0; i <= CachedCollisionCounter; i++) {
         X = CachedCollision[i].X;
@@ -1204,6 +599,8 @@ void CWDLProcess() {
         }
     }
 
+    OTSkybox.Draw();
+
     for (int i = 0; i <= CachedModelCounter; i++) {
         X = CachedModels[i].X;
         Y = CachedModels[i].Y;
@@ -1223,201 +620,29 @@ void CWDLProcess() {
             }
         }
 
-        switch (CachedModels[i].ModelId) {
-        case -2:
-            if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
-                                    (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
-                ObjectCollision = true;
-                if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
-                    PlaySound(OmegaTechSoundData.CollisionSound);
-                }
+        if (CachedModels[i].ModelId >= 1 && CachedModels[i].ModelId <= 20){
+            if (LOD && LowDetail[i]){
+                DrawModelEx(WLowDetailModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
             }
-            break;
-        case -1:
-            DrawModelEx(WDLModels.HeightMap, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            break;
-        case 1:
-            if (LODWDLModels.LODAvailableModel1 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model1, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model1, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model1, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model1, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+            else {
+                DrawModelEx(WDLModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
             }
-            break;
-        case 2:
-            if (LODWDLModels.LODAvailableModel2 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model2, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model2, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model2, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model2, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+        }
+        else {
+            switch (CachedModels[i].ModelId) {
+                case -2:
+                    if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
+                                            (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
+                        ObjectCollision = true;
+                        if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
+                            PlaySound(OmegaTechSoundData.CollisionSound);
+                        }
+                    }
+                    break;
+                case -1:
+                    DrawModelEx(TerrainData.HeightMap, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+                    break;
             }
-            break;
-        case 3:
-            if (LODWDLModels.LODAvailableModel3 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model3, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model3, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model3, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model3, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 4:
-            if (LODWDLModels.LODAvailableModel4 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model4, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model4, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model4, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model4, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 5:
-            if (LODWDLModels.LODAvailableModel5 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model5, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model5, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model5, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model5, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 6:
-            if (LODWDLModels.LODAvailableModel6 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model6, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model6, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model6, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model6, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 7:
-            if (LODWDLModels.LODAvailableModel7 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model7, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model7, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model7, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model7, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 8:
-            if (LODWDLModels.LODAvailableModel8 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model8, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model8, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model8, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model8, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 9:
-            if (LODWDLModels.LODAvailableModel9 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model9, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model9, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model9, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model9, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 10:
-            if (LODWDLModels.LODAvailableModel10 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model10, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model10, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model10, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model10, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 11:
-            if (LODWDLModels.LODAvailableModel11 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model11, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model11, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model11, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model11, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 12:
-            if (LODWDLModels.LODAvailableModel12 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model12, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model12, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model12, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model12, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 13:
-            if (LODWDLModels.LODAvailableModel13 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model13, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model13, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model13, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model13, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 14:
-            if (LODWDLModels.LODAvailableModel14 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model14, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model14, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model14, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model14, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 15:
-            if (LODWDLModels.LODAvailableModel15 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model15, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model15, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model15, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model15, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 16:
-            if (LODWDLModels.LODAvailableModel16 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model16, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model16, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model16, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model16, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 17:
-            if (LODWDLModels.LODAvailableModel17 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model17, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model17, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model17, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model17, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 18:
-            if (LODWDLModels.LODAvailableModel18 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model18, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model18, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model8, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model18, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 19:
-            if (LODWDLModels.LODAvailableModel19 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model19, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model19, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model19, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model19, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        case 20:
-            if (LODWDLModels.LODAvailableModel20 && LOD) {
-                if (IsModelOnScreen(LODWDLModels.Model20, {X, Y, Z}, S))
-                    DrawModelEx(LODWDLModels.Model20, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            } else {
-                if (IsModelOnScreen(WDLModels.Model20, {X, Y, Z}, S))
-                    DrawModelEx(WDLModels.Model20, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-            }
-            break;
-        default:
-            break;
         }
 
         if (CachedModels[i].ModelId >= 200) {
@@ -1528,83 +753,6 @@ void WDLProcess() {
         }
 
         if (Render) {
-            if (WReadValue(Instruction, 0, 4) == L"Model") {
-                int Identifier = ToFloat(WReadValue(Instruction, 5, 6));
-                switch (Identifier) {
-                case 1:
-                    DrawModelEx(WDLModels.Model1, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 2:
-                    DrawModelEx(WDLModels.Model2, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 3:
-                    DrawModelEx(WDLModels.Model3, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 4:
-                    DrawModelEx(WDLModels.Model4, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 5:
-                    DrawModelEx(WDLModels.Model5, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 6:
-                    DrawModelEx(WDLModels.Model6, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 7:
-                    DrawModelEx(WDLModels.Model7, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 8:
-                    DrawModelEx(WDLModels.Model8, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 9:
-                    DrawModelEx(WDLModels.Model9, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 10:
-                    DrawModelEx(WDLModels.Model10, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 11:
-                    DrawModelEx(WDLModels.Model11, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 12:
-                    DrawModelEx(WDLModels.Model12, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 13:
-                    DrawModelEx(WDLModels.Model13, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 14:
-                    DrawModelEx(WDLModels.Model14, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 15:
-                    DrawModelEx(WDLModels.Model15, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 16:
-                    DrawModelEx(WDLModels.Model16, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 17:
-                    DrawModelEx(WDLModels.Model17, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 18:
-                    DrawModelEx(WDLModels.Model18, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 19:
-                    DrawModelEx(WDLModels.Model19, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                case 20:
-                    DrawModelEx(WDLModels.Model20, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            if (NextCollision) {
-                BoundingBox ModelBox = CalculateBoundingBox(X, Y, Z, S);
-
-                if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds, ModelBox)) {
-                    ObjectCollision = true;
-                }
-                NextCollision = false;
-            }
-
             int AudioValue = 0;
 
             if (Instruction == L"NE1") {
@@ -1744,13 +892,6 @@ void WDLProcess() {
             i += 3;
         }
 
-        if (Instruction == L"HeightMap") { // ?
-            WDLModels.HeightMapPosition.x = X;
-            WDLModels.HeightMapPosition.y = Y;
-            WDLModels.HeightMapPosition.z = Z;
-            DrawModel(WDLModels.HeightMap, {X, Y, Z}, S, FadeColor);
-        }
-
         if (!NextCollision) {
             i += 5;
         }
@@ -1820,9 +961,9 @@ void UpdatePlayer() {
                                                        OmegaTechData.MainCamera.position.z + OmegaPlayer.Width / 2}};
 
     if (MapClipping && !UsingClipBox) {
-        if (OmegaTechData.MainCamera.position.z >= 0 && OmegaTechData.MainCamera.position.z <= WDLModels.HeightMapW) {
+        if (OmegaTechData.MainCamera.position.z >= 0 && OmegaTechData.MainCamera.position.z <= TerrainData.HeightMapW) {
             if (OmegaTechData.MainCamera.position.x >= 0 &&
-                OmegaTechData.MainCamera.position.x <= WDLModels.HeightMapW) {
+                OmegaTechData.MainCamera.position.x <= TerrainData.HeightMapW) {
                 if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
                     GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 ||
                     GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0) {
@@ -1960,7 +1101,7 @@ void DrawWorld() {
     }
 
     if (OmegaTechData.Ticker != 60) {
-        OmegaTechData.Ticker++;
+        OmegaTechData.Ticker ++;
     } else {
         OmegaTechData.Ticker = 0;
     }

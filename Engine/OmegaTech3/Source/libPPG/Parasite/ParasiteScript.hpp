@@ -7,7 +7,6 @@
 #define FadeColorText "\033[1;37m"
 
 
-
 string PMemKey = "9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
 
 
@@ -66,7 +65,6 @@ void ParasiteScriptInit(){
 
     VaribleCounter = 0;
     TextureCounter = 0;
-    PMemCounter = 0;
     JumpPointCounter = 0;
     ArrayCounter = 0;
     SFXCounter = 0;
@@ -935,6 +933,8 @@ auto CycleInstruction(){
                     int Z = StringToInt(SplitValue(Instruction, 3 ));
 
                     SunPos = {float(X) ,float(Y),float(Z)};
+                    SetSunFlag = true;
+
                     
                     FoundInstruction = true;
                 }

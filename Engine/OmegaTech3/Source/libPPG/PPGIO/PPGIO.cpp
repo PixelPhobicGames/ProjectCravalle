@@ -8,11 +8,35 @@ Vector3 Vector3Add(Vector3 v1, Vector3 v2) {
     Vector3 result = {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
     return result;
 }
-bool IsPointOnScreen(Vector3 point, Camera camera) {
-    Vector2 projectedPoint = GetWorldToScreen(point, camera);
-    return (projectedPoint.x >= -GetScreenWidth() && projectedPoint.x <= GetScreenWidth() * 2 &&
-            projectedPoint.y >= -GetScreenHeight() && projectedPoint.y <= GetScreenHeight() * 2);
+
+BoundingBox CalculateBoundingBox(float initialX, float initialY, float initialZ, float scale) {
+    BoundingBox box;
+
+    float halfExtentX = 1.5 * scale;
+    float halfExtentY = 1.5 * scale;
+    float halfExtentZ = 1.5 * scale;
+
+    box.min.x = initialX - halfExtentX;
+    box.min.y = initialY - halfExtentY;
+    box.min.z = initialZ - halfExtentZ;
+
+    box.max.x = initialX + halfExtentX;
+    box.max.y = initialY + halfExtentY;
+    box.max.z = initialZ + halfExtentZ;
+
+    return box;
 }
+
+
+bool IsModelLoaded(Model *GModel){
+    if ((GModel->meshCount != 0) && (GModel->meshes != NULL)){
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 
 float GetDistance(float x1, float y1, float x2, float y2) {
     float dx = x2 - x1;

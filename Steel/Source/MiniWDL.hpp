@@ -9,14 +9,58 @@ int SteelCameraMode = 3;
 wstring WDLData;
 
 
-#define MaxMapSize 1000
+#define MaxMapSize 4096 * 2
 
-#define MaxModels 1000
-#define MaxCachedModels 200
+#define MaxCachedModels MaxMapSize
 
 #define ModelCount 21
 
 static float TerrainHeightMap[MaxMapSize][MaxMapSize];
+
+class Skybox{
+    public:
+
+        Model SkyboxModel;
+        Shader CubemapShader;
+
+        void InitSkybox(){
+            Mesh Cube = GenMeshCube(1.0f, 1.0f, 1.0f);
+            SkyboxModel = LoadModelFromMesh(Cube);
+            SkyboxModel.materials[0].shader = LoadShader(".OTEData/AppData/Shaders/skybox.vs", ".OTEData/AppData/Shaders/skybox.fs");
+            bool UseHDR = false;
+
+            int materialMapCubemap = MATERIAL_MAP_CUBEMAP;
+            int doGamma = UseHDR ? 1 : 0;
+            int vFlipped = UseHDR ? 1 : 0;
+
+            // Modify the problematic lines
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &materialMapCubemap, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &doGamma, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &vFlipped, SHADER_UNIFORM_INT);
+
+            CubemapShader = LoadShader(".OTEData/AppData/Shaders/cubemap.vs", ".OTEData/AppData/Shaders/cubemap.fs");
+
+            int equirectangularMapValue = 0;
+            SetShaderValue(CubemapShader, GetShaderLocation(CubemapShader, "equirectangularMap"), &equirectangularMapValue, SHADER_UNIFORM_INT);
+
+
+            Image img = LoadImage(".OTEData/AppData/Shaders/skybox.png");
+            SkyboxModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);    // CUBEMAP_LAYOUT_PANORAMA
+            UnloadImage(img);
+        }
+
+        void Draw(){
+            rlDisableBackfaceCulling();
+            rlDisableDepthMask();
+
+                DrawModel(SkyboxModel, (Vector3){0, 0, 0}, 1.0f, WHITE);
+
+            rlEnableBackfaceCulling();
+            rlEnableDepthMask();
+        }
+};
+
+static Skybox OTSkybox;
 
 
 class WDLModels{
@@ -265,13 +309,19 @@ void LoadData(){
             cout << "Model " << i << " Does not exists \n";
         }
     }
+    
     GenTerrain();
+    OTSkybox.InitSkybox();
 
     ProcessWDL(".OTEData/Working/World.wdl");
 
 }
 
 void DrawWDL(){
+
+    OTSkybox.Draw();
+
+
     for (int i = 0; i <= CachedCollisionCounter; i++) {
         X = CachedCollision[i].X;
         Y = CachedCollision[i].Y;
@@ -282,6 +332,7 @@ void DrawWDL(){
 
         DrawCubeWires((Vector3){X, Y, Z}, W, H, L , RED);
     }
+
 
     for (int i = 0; i <= CachedModelCounter; i++) {
         X = CachedModels[i].X;
@@ -470,6 +521,10 @@ void RenderWDL(){
                 if (IsMouseButtonDown(1)){
                     DrawText(TextFormat("Object Scale: %i" , int(EditorScale) ) , 5 , 5, 10 , WHITE);
                 }
+                else {
+                    DrawText(TextFormat("Cam Pos: %i %i %i" , int(SceneCamera.position.x) , int(SceneCamera.position.y) , int(SceneCamera.position.z)) , 5 , 5, 10 , WHITE);
+                }
+                
 
             }
         }

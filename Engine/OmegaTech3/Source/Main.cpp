@@ -1,7 +1,5 @@
 #include "Core.hpp"
 
-/* OT:2: PixelPhobicGames 2023 */
-
 /* OT 3: PixelPhobicGames 2024*/
 
 int main() {
@@ -151,6 +149,8 @@ int main() {
 
         SceneIDMirror = OmegaTechData.LevelIndex;
     }
+
+    UnloadGame();
 
     CloseWindow();
 }

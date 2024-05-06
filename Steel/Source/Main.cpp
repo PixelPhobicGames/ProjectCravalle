@@ -6,7 +6,7 @@
 #include <cstring>
 
 
-#include "Style.h"
+#include "External/raygui/Style.h"
 #include "MiniWDL.hpp"
 
 #define MAX_FILEPATH_RECORDED   4096
@@ -18,6 +18,9 @@ int main(){
 
 	InitMiniWDL();
 
+	GuiLoadStyle();
+
+
 	bool ProjectButton = false;
     bool SaveButton = false;
     bool UndoButton = false;
@@ -28,6 +31,28 @@ int main(){
 	bool ScriptToggle = false;
 	bool CollisionToggle = false;
 
+	bool ScatterButtonToggle = false;
+    bool ModelIDValueEditMode = false;
+    int ModelIDValue = 0;
+    bool MinScaleValueEditMode = false;
+    int MinScaleValue = 0;
+    bool MaxScaleValueEditMode = false;
+    int MaxScaleValue = 0;
+    bool RandomCheckBox;
+    bool CollisonCheckBox;
+
+    bool ModelGenValueEditMode = false;
+    int ModelGenValue = 0;
+    bool ModelYOffsetEditMode = false;
+    int ModelYOffset = 0;
+
+	bool HeightMapEditorToggle = false;
+    bool BrushSizeValueEditMode = false;
+
+    int BrushSizeValue = 100;
+    float BrushStrengthValue = 0.0f;
+
+	int BrushType = 1;
 
 	bool TerrainToggle = false;
 
@@ -283,7 +308,7 @@ int main(){
 				GuiLabel((Rectangle){ 432, 168, 120, 24 }, "Drag & Drop");
 				GuiLabel((Rectangle){ 512, 40, 104, 24 }, "Terrain Generator");
 				GuiPanel((Rectangle){ 432, 312, 144, 72 }, NULL);
-				if (GuiValueBox((Rectangle){ 528, 320, 40, 24 }, "Width", &TWidthValue, 1, 1000, TWidthMode)) TWidthMode = !TWidthMode;
+				if (GuiValueBox((Rectangle){ 528, 320, 40, 24 }, "Width", &TWidthValue, 1 , 4096, TWidthMode)) TWidthMode = !TWidthMode;
 				if (GuiValueBox((Rectangle){ 528, 352, 40, 24 }, "Height", &THeightValue, 1, 1000, THeightMode)) THeightMode = !THeightMode;
 				GuiLine((Rectangle){ 416, 56, 304, 16 }, NULL);
 			}
@@ -352,6 +377,114 @@ int main(){
 					}
 				}
 
+                if (GuiButton((Rectangle){ 72, 208, 288, 32 }, "Model Scatter")){
+					if (ScatterButtonToggle)ScatterButtonToggle= false;
+					else {
+						ScatterButtonToggle = true;
+					}
+				}
+                if (GuiButton((Rectangle){ 72, 208 + 48, 288, 32 }, "HeightMap Editor")){
+					if (HeightMapEditorToggle)HeightMapEditorToggle= false;
+					else {
+						HeightMapEditorToggle = true;
+						InitHMEditor();
+					}
+				}
+
+				if (HeightMapEditorToggle && !TerrainGenToggle){
+					
+					if (GuiWindowBox((Rectangle){ 392, 24, 624, 528 }, "Height Map Editor")){
+						HeightMapEditorToggle = false;
+					}
+
+					GuiLabel((Rectangle){ 408, 48, 120, 24 }, "Height Map");
+					GuiPanel((Rectangle){ 408, 72, 456, 456 }, NULL);
+
+					DrawTexturePro(WorkingHM ,{0 , 0 , WorkingHM.width , WorkingHM.height} , { 408, 72, 456, 456 } , {0 , 0} , 0.0f, WHITE);
+
+					if (GetMouseX() >= 408 && GetMouseY() >= 72 && GetMouseX() <= 408 + 456 && GetMouseY() <= 72 + 456){
+
+						BrushSizeValue += GetMouseWheelMoveV().y / 5;
+
+						int ScaleFactor = (WHMWidth / 456);
+
+						int X = (GetMouseX() - 408) * ScaleFactor;
+						int Y = (GetMouseY() - 72) * ScaleFactor;
+
+						int CUnit = (BrushStrengthValue);
+
+						Color BrushColour = {CUnit , CUnit , CUnit, 255};
+
+
+
+						if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+							if  (BrushType == 2){
+								ImageDrawCircleV(&WorkingHMData, {X , Y} , BrushSizeValue, BLACK);
+							}
+							if  (BrushType == 1){
+								ImageDrawCircleV(&ColourMask, {X , Y} , BrushSizeValue, BrushColour);
+
+							}
+							if  (BrushType == 0){
+								ImageDrawRectangle(&ColourMask , X - BrushSizeValue / 2, Y - BrushSizeValue/ 2 , BrushSizeValue , BrushSizeValue, BrushColour);
+							}
+						}
+
+						if  (BrushType == 1 || BrushType == 2){
+							DrawCircleLines(GetMouseX() , GetMouseY() , BrushSizeValue / ScaleFactor , RED);
+
+						}
+						if  (BrushType == 0){
+							DrawRectangleLines(GetMouseX() - (BrushSizeValue / ScaleFactor) / 2, GetMouseY() - (BrushSizeValue  / ScaleFactor ) / 2 , BrushSizeValue / ScaleFactor , BrushSizeValue / ScaleFactor, RED);
+						}
+
+						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)){
+
+							if (BrushType != 2){
+								WorkingHMData = addImagesColor(WorkingHMData , ColourMask);
+								ImageClearBackground(&ColourMask, BLACK);
+							}
+
+							WorkingHM = LoadTextureFromImage(WorkingHMData);
+						}						
+						
+					}
+
+
+					GuiPanel((Rectangle){ 872, 72, 128, 120 + 32 }, NULL);
+					GuiPanel((Rectangle){ 872, 216, 128, 192 }, NULL);
+
+					GuiPanel((Rectangle){ 872, 432, 128, 96 }, NULL);
+
+					if (GuiButton((Rectangle){ 880, 120, 112, 24 }, "Circle")){
+						BrushType = 1;
+					}
+
+					if (GuiButton((Rectangle){ 880, 152, 112, 24 }, "Square")){
+						BrushType = 0;
+					}
+
+					if (GuiButton((Rectangle){ 880, 152 + 32, 112, 24 }, "Erase")){
+						BrushType = 2;
+					}
+
+
+					GuiLine((Rectangle){ 872, 96, 128, 16 }, NULL);
+					GuiLabel((Rectangle){ 912, 72, 48, 32 }, "Brush");
+					GuiLabel((Rectangle){ 912, 216, 120, 32 }, "Options");
+					GuiLine((Rectangle){ 872, 240, 128, 16 }, NULL);
+
+					if (GuiValueBox((Rectangle){ 952, 264, 32, 24 }, "Size (px) ", &BrushSizeValue, 0, 100, BrushSizeValueEditMode)) BrushSizeValueEditMode = !BrushSizeValueEditMode;
+					
+					BrushStrengthValue = GuiSliderBar((Rectangle){ 888, 352, 96, 16 }, NULL, NULL, BrushStrengthValue, 1, 255);
+
+					GuiLabel((Rectangle){ 912 - 56/ 4, 320, 56 * 2, 24 }, TextFormat("Strength %i" , int(BrushStrengthValue)) );
+
+					if (GuiButton((Rectangle){ 888, 464, 96, 32 }, "Save")){
+						ExportImage(WorkingHMData , ".OTEData/Working/Models/HeightMap.png");
+					}
+				}
+
 				if (TerrainGenToggle){
 					if (GuiWindowBox((Rectangle){ 312, 144, 504, 264 }, "Terrain Generator")){
 						TerrainGenToggle = false;
@@ -363,6 +496,27 @@ int main(){
 						ValueBOx003EditMode = !ValueBOx003EditMode;
 						float Value = ValueBOx003Value / 100.0f;
 
+						CreateTerrain(Value);
+					}
+
+					if (IsKeyPressed(KEY_UP)){
+						Depth += 10;
+
+						if (Depth > 255){
+							Depth = 255;
+						}
+					}
+					
+					if (IsKeyPressed(KEY_DOWN)){
+						Depth -= 10;
+
+						if (Depth < -255){
+							Depth = -255;
+						}
+					}
+
+					if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_UP)){
+						float Value = ValueBOx003Value / 100.0f;
 						CreateTerrain(Value);
 					}
 
@@ -400,6 +554,78 @@ int main(){
 							DEProgress = 1.0f;
 						#endif
 					}
+				}
+
+				if (ScatterButtonToggle){
+
+					if (GuiWindowBox((Rectangle){ 8, 192, 264, 344 }, "Model Scatter")){
+						ScatterButtonToggle = false;
+					}
+					
+					GuiPanel((Rectangle){ 16, 224, 248, 168 }, NULL);
+
+					if (GuiValueBox((Rectangle){ 104, 240, 120, 24 }, "Model ID", &ModelIDValue, 0, ModelCount - 1, ModelIDValueEditMode)) ModelIDValueEditMode = !ModelIDValueEditMode;
+					if (GuiSpinner((Rectangle){ 104, 288, 120, 24 }, "Min Scale", &MinScaleValue, -1000, 1000, MinScaleValueEditMode)) MinScaleValueEditMode = !MinScaleValueEditMode;
+					if (GuiSpinner((Rectangle){ 104, 336, 120, 24 }, "Max Scale", &MaxScaleValue, 0, 1000, MaxScaleValueEditMode)) MaxScaleValueEditMode = !MaxScaleValueEditMode;
+
+					if (GuiButton((Rectangle){ 24, 456 - 2, 148, 24 }, TextFormat("Randomize Rotation: %i" , RandomCheckBox) )){
+						if (RandomCheckBox){
+							RandomCheckBox = false;
+						}
+						else {
+							RandomCheckBox = true;
+						}
+					}
+
+					if (GuiButton((Rectangle){ 24, 456 + 24 - 1, 128 + 20, 24 }, TextFormat("Collison: %i" , CollisonCheckBox) )){
+						if (CollisonCheckBox){
+							CollisonCheckBox = false;
+						}
+						else {
+							CollisonCheckBox = true;
+						}
+					}
+
+
+					if (GuiValueBox((Rectangle){ 136, 400, 120, 24 }, "YOffset", &ModelYOffset, -100, 100, ModelYOffsetEditMode)) ModelYOffsetEditMode = !ModelYOffsetEditMode;
+
+					if (GuiValueBox((Rectangle){ 136, 424, 120, 24 }, "Models Generated", &ModelGenValue, 0, MaxCachedModels, ModelGenValueEditMode)) ModelGenValueEditMode = !ModelGenValueEditMode;
+
+					if (GuiButton((Rectangle){ 80, 504, 120, 24 }, "Generate")){
+						for (int i = 0; i <= ModelGenValue; i++){
+							int Width = PullConfigValue(".OTEData/Working/Config/HeightMap.conf" , 0);
+
+							int X = int(GetRandomValue(0 , Width));
+							int Z = int(GetRandomValue(0 , Width));
+							int Scale = GetRandomValue(MinScaleValue , MaxScaleValue);
+							float Rotation = 0.0f;
+
+							if (RandomCheckBox){
+								Rotation = float(GetRandomValue(0 , 360));
+							}
+							
+
+							TerrainHeightMap[int(GetRandomValue(0 , Width))][int(GetRandomValue(0 , Width))];
+
+							if (CollisonCheckBox){
+								WorkingWDLData += L"C:";
+							}
+
+							WorkingWDLData += L"Model"+to_wstring(ModelIDValue) + L":" + to_wstring(X) + L":" + to_wstring((TerrainHeightMap[Z][X] - float(ModelYOffset))) + L":" +
+							to_wstring(Z) + L":" + to_wstring(Scale) + L":" +
+							to_wstring(Rotation) + L":";
+
+						}
+
+						wofstream OutFile;
+						OutFile.open(".OTEData/Working/World.wdl");
+						OutFile << WorkingWDLData;
+						OutFile.close();
+
+						ProcessWDL(".OTEData/Working/World.wdl");
+
+					}
+
 				}
 			}
 

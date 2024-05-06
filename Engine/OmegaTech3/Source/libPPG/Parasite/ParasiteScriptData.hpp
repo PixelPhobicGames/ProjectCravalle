@@ -51,6 +51,8 @@ static int SetSceneId = 0;
 
 static bool SetCameraFlag = false;
 static Vector3 SetCameraPos = {0,0,0};
+
+static bool SetSunFlag = false;
 static Vector3 SunPos = {0,0,0};
 
 static bool ScriptCollisionMessage = false;

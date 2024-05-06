@@ -41,54 +41,31 @@ uniform float fogDensity;
 
 void main()
 {
-    // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, fragTexCoord);
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);
     vec3 specular = vec3(0.0);
 
-    // NOTE: Implement here your fragment shader code
+    // Cartoonish shading: Simplify the lighting to create flat areas of color
+    float NdotL = dot(normal, -normalize(viewPos - fragPosition));
+    NdotL = clamp(NdotL, 0.2, 1.0); // Clamp to create a more stylized look
+    lightDot = vec3(NdotL);
 
-    for (int i = 0; i < MAX_LIGHTS; i++)
-    {
-        if (lights[i].enabled == 1)
-        {
-            vec3 light = vec3(0.0);
+    // Simplified specular highlights
+    float specCo = pow(max(0.0, dot(viewD, reflect(-viewD, normal))), 12.0);
+    specular = vec3(specCo);
 
-            if (lights[i].type == LIGHT_DIRECTIONAL) light = -normalize(lights[i].target - lights[i].position);
-            if (lights[i].type == LIGHT_POINT) light = normalize(lights[i].position - fragPosition);
+    finalColor = (texelColor * (colDiffuse * vec4(lightDot, 1.0)));
+    finalColor += texelColor * (ambient / 5.0); // Increase ambient for a softer look
 
-            float NdotL = max(dot(normal, light), 0.0);
-            lightDot += lights[i].color.rgb*NdotL;
+    finalColor = pow(finalColor, vec4(1.0 / 2.2));
 
-            float specCo = 0.0;
-            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 12.0); // Shine: 16.0
-            specular += specCo;
-        }
-    }
-
-    finalColor = (texelColor*((colDiffuse + vec4(specular,1))*vec4(lightDot, 1.0)));
-    finalColor += texelColor*(ambient/10.0);
-
-    // Gamma correction
-    finalColor = pow(finalColor, vec4(1.0/2.2));
-
-    // Fog calculation
     float dist = length(viewPos - fragPosition);
+    const vec4 fogColor = vec4(0.5, 0.4, 0.4, 1.0);
+    const float fogDensity = 0.008;
 
-    // these could be parameters...
-    const vec4 fogColor = vec4(0.5, 0.5, 0.7, 1.0);
-    //const float fogDensity = 0.16;
-
-    // Exponential fog
-    float fogFactor = 1.0/exp((dist*fogDensity)*(dist*fogDensity));
-
-    // Linear fog (less nice)
-    //const float fogStart = 2.0;
-    //const float fogEnd = 10.0;
-    //float fogFactor = (fogEnd - dist)/(fogEnd - fogStart);
-
+    float fogFactor = 1.0 / exp((dist * fogDensity) * (dist * fogDensity));
     fogFactor = clamp(fogFactor, 0.0, 1.0);
 
     finalColor = mix(fogColor, finalColor, fogFactor);

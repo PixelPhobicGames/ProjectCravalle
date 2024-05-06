@@ -40,6 +40,8 @@ int FlipNumber(int num);
 Vector3 Vector3Scale(Vector3 vector, float scale);
 Vector3 Vector3Add(Vector3 v1, Vector3 v2);
 bool IsPointOnScreen(Vector3 point, Camera camera);
+BoundingBox CalculateBoundingBox(float initialX, float initialY, float initialZ, float scale);
+bool IsModelLoaded(Model *GModel);
 
 class Input {
   public:

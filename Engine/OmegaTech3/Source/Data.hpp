@@ -1,10 +1,10 @@
 #include "Editor.hpp"
 #include "Entities.hpp"
-
 #include "External/raygui/Style.h"
 #include "Misc.hpp"
 #include "OTVideo.hpp"
 #include "Player.hpp"
+
 #include "libPPG/Parasite/ParasiteScript.hpp"
 #include "libPPG/ParticleDemon/ParticleDemon.hpp"
 #include "libPPG/Rumble.hpp"
@@ -42,8 +42,10 @@ using namespace std;
 
 #endif
 
+#define ModelCount 21
+
 #define MaxCachedModels 200
-#define MaxMapSize 2000
+#define MaxMapSize 4096
 #define MaxWStringAlloc 1048576
 
 bool FloorCollision = true;
@@ -66,9 +68,11 @@ static float TerrainHeightMap[MaxMapSize][MaxMapSize];
 #define MaxGrass 1000
 
 int RenderedGrass = 320;
-Vector3 GrassPositions[MaxGrass];
+
 bool GrassScan = true;
 int GrassTicker = 0;
+
+Vector3 GrassPositions[MaxGrass];
 
 class EngineData {
   public:
@@ -132,242 +136,78 @@ void GenHeights(Image heightmap, Vector3 size) {
     }
 }
 
+
+class Skybox{
+    public:
+
+        Model SkyboxModel;
+        Shader CubemapShader;
+        Color SColour;
+
+        void InitSkybox(){
+            Mesh Cube = GenMeshCube(1.0f, 1.0f, 1.0f);
+            SkyboxModel = LoadModelFromMesh(Cube);
+            SkyboxModel.materials[0].shader = LoadShader("GameData/Shaders/Skybox/skybox.vs", "GameData/Shaders/Skybox/skybox.fs");
+            bool UseHDR = false;
+
+            int materialMapCubemap = MATERIAL_MAP_CUBEMAP;
+            int doGamma = UseHDR ? 1 : 0;
+            int vFlipped = UseHDR ? 1 : 0;
+
+            // Modify the problematic lines
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &materialMapCubemap, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &doGamma, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &vFlipped, SHADER_UNIFORM_INT);
+
+            CubemapShader = LoadShader("GameData/Shaders/Skybox/cubemap.vs", "GameData/Shaders/Skybox/cubemap.fs");
+
+            int equirectangularMapValue = 0;
+            SetShaderValue(CubemapShader, GetShaderLocation(CubemapShader, "equirectangularMap"), &equirectangularMapValue, SHADER_UNIFORM_INT);
+        }
+
+        void LoadSkybox(const char* path){
+            Image img = LoadImage(path);
+            SkyboxModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);
+            UnloadImage(img);
+        }
+
+        void Draw(){
+            rlDisableBackfaceCulling();
+            rlDisableDepthMask();
+
+                DrawModel(SkyboxModel, (Vector3){0, 0, 0}, 1.0f, SColour);
+
+            rlEnableBackfaceCulling();
+            rlEnableDepthMask();
+        }
+};
+
+static Skybox OTSkybox;
+
+class Terrain {
+    public:
+        Vector3 HeightMapPosition;
+        int HeightMapW = 0;
+        int HeightMapH = 0;
+
+        Model HeightMap;
+        Texture2D HeightMapTexture;
+};
+
+static Terrain TerrainData;
+
 class GameModels {
   public:
-    Vector3 HeightMapPosition;
-    int HeightMapW = 0;
-    int HeightMapH = 0;
-    Model HeightMap;
-    Texture2D HeightMapTexture;
-
-    Model Model1;
-    Texture2D Model1Texture;
-
-    Model Model2;
-    Texture2D Model2Texture;
-
-    Model Model3;
-    Texture2D Model3Texture;
-
-    Model Model4;
-    Texture2D Model4Texture;
-
-    Model Model5;
-    Texture2D Model5Texture;
-
-    Model Model6;
-    Texture2D Model6Texture;
-
-    Model Model7;
-    Texture2D Model7Texture;
-
-    Model Model8;
-    Texture2D Model8Texture;
-
-    Model Model9;
-    Texture2D Model9Texture;
-
-    Model Model10;
-    Texture2D Model10Texture;
-
-    Model Model11;
-    Texture2D Model11Texture;
-
-    Model Model12;
-    Texture2D Model12Texture;
-
-    Model Model13;
-    Texture2D Model13Texture;
-
-    Model Model14;
-    Texture2D Model14Texture;
-
-    Model Model15;
-    Texture2D Model15Texture;
-
-    Model Model16;
-    Texture2D Model16Texture;
-
-    Model Model17;
-    Texture2D Model17Texture;
-
-    Model Model18;
-    Texture2D Model18Texture;
-
-    Model Model19;
-    Texture2D Model19Texture;
-
-    Model Model20;
-    Texture2D Model20Texture;
-
-    // GLTS Models
-
-    // For Faster Rendering.
-
-    Model FastModel1;
-    Texture2D FastModel1Texture;
-    Model FastModel2;
-    Texture2D FastModel2Texture;
-    Model FastModel3;
-    Texture2D FastModel3Texture;
-    Model FastModel4;
-    Texture2D FastModel4Texture;
-    Model FastModel5;
-    Texture2D FastModel5Texture;
+    Model ModelData;
+    Texture2D ModelTexture;
 };
 
-static GameModels WDLModels;
+static GameModels WDLModels[ModelCount];
+static GameModels WLowDetailModels[ModelCount];
 
-class GameLODModels {
-  public:
-    bool LODAvailableModel1 = false;
-    bool LODAvailableModel2 = false;
-    bool LODAvailableModel3 = false;
-    bool LODAvailableModel4 = false;
-    bool LODAvailableModel5 = false;
-    bool LODAvailableModel6 = false;
-    bool LODAvailableModel7 = false;
-    bool LODAvailableModel8 = false;
-    bool LODAvailableModel9 = false;
-    bool LODAvailableModel10 = false;
-    bool LODAvailableModel11 = false;
-    bool LODAvailableModel12 = false;
-    bool LODAvailableModel13 = false;
-    bool LODAvailableModel14 = false;
-    bool LODAvailableModel15 = false;
-    bool LODAvailableModel16 = false;
-    bool LODAvailableModel17 = false;
-    bool LODAvailableModel18 = false;
-    bool LODAvailableModel19 = false;
-    bool LODAvailableModel20 = false;
+bool LowDetail[ModelCount];
 
-    Model Model1;
-    Model Model2;
-    Model Model3;
-    Model Model4;
-    Model Model5;
-    Model Model6;
-    Model Model7;
-    Model Model8;
-    Model Model9;
-    Model Model10;
-    Model Model11;
-    Model Model12;
-    Model Model13;
-    Model Model14;
-    Model Model15;
-    Model Model16;
-    Model Model17;
-    Model Model18;
-    Model Model19;
-    Model Model20;
-
-    void ClearModelInfo() {
-        // Unload models if they are loaded
-
-        if (LODAvailableModel1) {
-            UnloadModel(Model1);
-            LODAvailableModel1 = false;
-        }
-
-        if (LODAvailableModel2) {
-            UnloadModel(Model2);
-            LODAvailableModel2 = false;
-        }
-
-        if (LODAvailableModel3) {
-            UnloadModel(Model3);
-            LODAvailableModel3 = false;
-        }
-
-        if (LODAvailableModel4) {
-            UnloadModel(Model4);
-            LODAvailableModel4 = false;
-        }
-
-        if (LODAvailableModel5) {
-            UnloadModel(Model5);
-            LODAvailableModel5 = false;
-        }
-
-        if (LODAvailableModel6) {
-            UnloadModel(Model6);
-            LODAvailableModel6 = false;
-        }
-
-        if (LODAvailableModel7) {
-            UnloadModel(Model7);
-            LODAvailableModel7 = false;
-        }
-
-        if (LODAvailableModel8) {
-            UnloadModel(Model8);
-            LODAvailableModel8 = false;
-        }
-
-        if (LODAvailableModel9) {
-            UnloadModel(Model9);
-            LODAvailableModel9 = false;
-        }
-
-        if (LODAvailableModel10) {
-            UnloadModel(Model10);
-            LODAvailableModel10 = false;
-        }
-
-        if (LODAvailableModel11) {
-            UnloadModel(Model11);
-            LODAvailableModel11 = false;
-        }
-
-        if (LODAvailableModel12) {
-            UnloadModel(Model12);
-            LODAvailableModel12 = false;
-        }
-
-        if (LODAvailableModel13) {
-            UnloadModel(Model13);
-            LODAvailableModel13 = false;
-        }
-
-        if (LODAvailableModel14) {
-            UnloadModel(Model14);
-            LODAvailableModel14 = false;
-        }
-
-        if (LODAvailableModel15) {
-            UnloadModel(Model15);
-            LODAvailableModel15 = false;
-        }
-
-        if (LODAvailableModel16) {
-            UnloadModel(Model16);
-            LODAvailableModel16 = false;
-        }
-
-        if (LODAvailableModel17) {
-            UnloadModel(Model17);
-            LODAvailableModel17 = false;
-        }
-
-        if (LODAvailableModel18) {
-            UnloadModel(Model18);
-            LODAvailableModel18 = false;
-        }
-
-        if (LODAvailableModel19) {
-            UnloadModel(Model19);
-            LODAvailableModel19 = false;
-        }
-
-        if (LODAvailableModel20) {
-            UnloadModel(Model20);
-            LODAvailableModel20 = false;
-        }
-    }
-};
-
-static GameLODModels LODWDLModels;
+static GameModels FastModels[6];
 
 class GameData {
   public:
@@ -435,6 +275,70 @@ class GameSounds {
 
 static GameSounds OmegaTechSoundData;
 
+
+
+void UnloadGame(){
+
+    // Unload World Data 
+
+    if (IsModelLoaded(&TerrainData.HeightMap)){
+        UnloadModel(TerrainData.HeightMap);
+    }
+    
+    if (TerrainData.HeightMapTexture.width != NULL){
+        UnloadTexture(TerrainData.HeightMapTexture);
+    }
+
+    for (int i = 1; i <= ModelCount - 1; i ++){ 
+        if (IsModelLoaded(&WDLModels[i].ModelData)){
+            UnloadModel(WDLModels[i].ModelData);
+        }
+
+        if (WDLModels[i].ModelTexture.width != NULL){
+            UnloadTexture(WDLModels[i].ModelTexture);
+        }
+
+        if ( LowDetail[i] ){
+            if (IsModelLoaded(&WLowDetailModels[i].ModelData)){
+                UnloadModel(WLowDetailModels[i].ModelData);
+            }
+
+            if (WLowDetailModels[i].ModelTexture.width != NULL){
+                UnloadTexture(WLowDetailModels[i].ModelTexture);
+            }
+        }
+    }
+
+    for (int i = 0; i <= 5 ; i ++ ){
+        if (IsModelLoaded(&FastModels[i].ModelData)){
+            UnloadModel(FastModels[i].ModelData);
+        }
+
+        if (FastModels[i].ModelTexture.width != NULL){
+            UnloadTexture(FastModels[i].ModelTexture);
+        }
+    }
+
+    UnloadShader(OTSkybox.CubemapShader);
+    UnloadRenderTexture(ParasiteTarget);
+    UnloadRenderTexture(Target);
+
+    UnloadFont(OmegaTechTextSystem.BarFont );
+    UnloadFont(OmegaTechTextSystem.RussianBarFont);
+    UnloadFont(OmegaTechTextSystem.LatinBarFont );
+    UnloadFont(OmegaTechTextSystem.JapaneseBarFont );
+
+    UnloadTexture(OmegaTechTextSystem.Bar);
+    UnloadTexture(OmegaTechData.Cursor);
+
+    UnloadSound(OmegaTechSoundData.CollisionSound );
+    UnloadSound(OmegaTechSoundData.WalkingSound);
+    UnloadSound(OmegaTechSoundData.ChasingSound);
+    UnloadSound(OmegaTechSoundData.UIClick);
+    UnloadSound(OmegaTechSoundData.Death );
+    UnloadSound(OmegaTechTextSystem.TextNoise );
+}
+
 void DrawTerrainMap() {
     for (int z = 0; z < MaxMapSize; z++) {
         for (int x = 0; x < MaxMapSize; x++) {
@@ -443,101 +347,3 @@ void DrawTerrainMap() {
     }
 }
 
-bool TextBox001EditMode = false;
-char TextBox001Text[128] = "";
-bool TextBox002EditMode = false;
-char TextBox002Text[1024] = "OmegaConsole\n";
-
-void PrintConsole(const char *Message) {
-    strcat(TextBox002Text, Message);
-}
-
-void ConsoleParseCommand(const char *Command) {
-    bool Found = false;
-
-    string CommandValue(Command);
-
-    if (CommandValue == "ExportTerrain") {
-        PrintConsole("Exporting Terrain As Mesh\n");
-        if (ExportMesh(WDLModels.HeightMap.meshes[0], "Terrain.obj")) {
-            PrintConsole("Done.. Stored in Terrain.obj\n");
-        }
-
-        Found = true;
-    }
-
-    if (CommandValue == "SigGen") {
-
-        string Data = WstringToString(WorldData);
-        string NewSig = SignatureGen<string>(Data);
-
-        cout << NewSig << "\n";
-
-        PrintConsole("Done.\n");
-        Found = true;
-    }
-
-    if (CommandValue == "Rumble") {
-        RumblePulse();
-        Found = true;
-    }
-
-    if (!Found) {
-        PrintConsole("Command Not Found: ");
-        PrintConsole(Command);
-        PrintConsole("<--\n");
-    }
-}
-
-int CommandCounter = 0;
-
-void DrawConsole() {
-    GuiPanel((Rectangle){0, 40, 616, 288}, NULL);
-
-    if (GuiTextBox((Rectangle){8, 296, 600, 24}, TextBox001Text, 128, TextBox001EditMode))
-        TextBox001EditMode = !TextBox001EditMode;
-
-    if (GuiTextBox((Rectangle){8, 48, 600, 240}, TextBox002Text, 1024, TextBox002EditMode)) {
-    }
-
-    if (IsKeyPressed(KEY_ENTER)) {
-        ConsoleParseCommand(TextBox001Text);
-        TextBox001Text[0] = '\0';
-        CommandCounter++;
-
-        if (CommandCounter == 2) {
-            TextBox002Text[0] = '\0';
-            CommandCounter = 0;
-        }
-    }
-}
-
-void CheckKey() {
-#ifdef Linux
-    char hostname[100];
-    gethostname(hostname, 100);
-
-    cout << "USER: " << hostname << "\n";
-
-    wstring encodedData = CharArrayToWString(hostname);
-    encodedData = Encode(encodedData, MainKey);
-
-    if (!IsPathFile("GameData/Key/Key.sig")) {
-        ofstream SigFile("GameData/Key/Key.sig");
-
-        if (SigFile.is_open()) {
-            SigFile << TextFormat("%ls", encodedData.c_str());
-            SigFile.close();
-        } else {
-            cerr << "Error opening file for writing.\n";
-        }
-    } else {
-        wstring Data = LoadFile("GameData/Key/Key.sig");
-
-        if (!(Data[3] == encodedData[3])) {
-            wcout << Data << " != " << encodedData << "\n";
-            exit(0);
-        }
-    }
-#endif
-}
