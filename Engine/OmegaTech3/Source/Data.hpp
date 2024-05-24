@@ -4,6 +4,7 @@
 #include "Misc.hpp"
 #include "OTVideo.hpp"
 #include "Player.hpp"
+#include "QMaps.hpp"
 
 #include "libPPG/Parasite/ParasiteScript.hpp"
 #include "libPPG/ParticleDemon/ParticleDemon.hpp"
@@ -19,6 +20,8 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include <thread>
+#include <vector>
 
 using namespace std;
 
@@ -112,31 +115,6 @@ class EngineData {
 
 static EngineData OmegaTechData;
 
-void GenHeights(Image heightmap, Vector3 size) {
-#define GRAY_VALUE(c) ((float)(c.r + c.g + c.b) / 3.0f)
-
-    int mapX = size.x;
-    int mapZ = size.z;
-
-    for (int z = 0; z < mapX - 1; z++) {
-        for (int x = 0; x < mapZ - 1; x++) {
-            TerrainHeightMap[z][x] = 0.0f;
-        }
-    }
-
-    Color *pixels = LoadImageColors(heightmap);
-
-    float Scale = heightmap.width / size.x;
-
-    for (int z = 0; z < (mapZ)-1; z++) {
-        for (int x = 0; x < (mapX)-1; x++) {
-            float Index = ((x * Scale) + (z * Scale) * heightmap.width);
-            TerrainHeightMap[z][x] = GRAY_VALUE(pixels[int(Index)]) / (255 / size.y);
-        }
-    }
-}
-
-
 class Skybox{
     public:
 
@@ -154,7 +132,6 @@ class Skybox{
             int doGamma = UseHDR ? 1 : 0;
             int vFlipped = UseHDR ? 1 : 0;
 
-            // Modify the problematic lines
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &materialMapCubemap, SHADER_UNIFORM_INT);
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &doGamma, SHADER_UNIFORM_INT);
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &vFlipped, SHADER_UNIFORM_INT);
@@ -275,75 +252,61 @@ class GameSounds {
 
 static GameSounds OmegaTechSoundData;
 
+void SaveGame() {
+    wstring TFlags = L"";
 
-
-void UnloadGame(){
-
-    // Unload World Data 
-
-    if (IsModelLoaded(&TerrainData.HeightMap)){
-        UnloadModel(TerrainData.HeightMap);
-    }
-    
-    if (TerrainData.HeightMapTexture.width != NULL){
-        UnloadTexture(TerrainData.HeightMapTexture);
-    }
-
-    for (int i = 1; i <= ModelCount - 1; i ++){ 
-        if (IsModelLoaded(&WDLModels[i].ModelData)){
-            UnloadModel(WDLModels[i].ModelData);
+    for (int i = 0; i <= 99; i++) {
+        if (ToggleFlags[i].Value == 1) {
+            TFlags += L'1';
         }
-
-        if (WDLModels[i].ModelTexture.width != NULL){
-            UnloadTexture(WDLModels[i].ModelTexture);
-        }
-
-        if ( LowDetail[i] ){
-            if (IsModelLoaded(&WLowDetailModels[i].ModelData)){
-                UnloadModel(WLowDetailModels[i].ModelData);
-            }
-
-            if (WLowDetailModels[i].ModelTexture.width != NULL){
-                UnloadTexture(WLowDetailModels[i].ModelTexture);
-            }
+        if (ToggleFlags[i].Value == 0) {
+            TFlags += L'0';
         }
     }
 
-    for (int i = 0; i <= 5 ; i ++ ){
-        if (IsModelLoaded(&FastModels[i].ModelData)){
-            UnloadModel(FastModels[i].ModelData);
-        }
+    wofstream Outfile;
+    Outfile.open("GameData/Saves/TF.sav");
+    Outfile << TFlags;
 
-        if (FastModels[i].ModelTexture.width != NULL){
-            UnloadTexture(FastModels[i].ModelTexture);
-        }
-    }
+    wstring Position =
+        to_wstring(OmegaTechData.MainCamera.position.x) + L':' + to_wstring(OmegaTechData.MainCamera.position.y) +
+        L':' + to_wstring(OmegaTechData.MainCamera.position.z) + L':' + to_wstring(OmegaTechData.LevelIndex) + L':';
 
-    UnloadShader(OTSkybox.CubemapShader);
-    UnloadRenderTexture(ParasiteTarget);
-    UnloadRenderTexture(Target);
+    wofstream Outfile1;
+    Outfile1.open("GameData/Saves/POS.sav");
+    Outfile1 << Position;
 
-    UnloadFont(OmegaTechTextSystem.BarFont );
-    UnloadFont(OmegaTechTextSystem.RussianBarFont);
-    UnloadFont(OmegaTechTextSystem.LatinBarFont );
-    UnloadFont(OmegaTechTextSystem.JapaneseBarFont );
+    wofstream Outfile2;
+    Outfile2.open("GameData/Saves/Script.sav");
+    Outfile2 << ExtraWDLInstructions;
 
-    UnloadTexture(OmegaTechTextSystem.Bar);
-    UnloadTexture(OmegaTechData.Cursor);
-
-    UnloadSound(OmegaTechSoundData.CollisionSound );
-    UnloadSound(OmegaTechSoundData.WalkingSound);
-    UnloadSound(OmegaTechSoundData.ChasingSound);
-    UnloadSound(OmegaTechSoundData.UIClick);
-    UnloadSound(OmegaTechSoundData.Death );
-    UnloadSound(OmegaTechTextSystem.TextNoise );
+    WritePMemPage();
 }
 
-void DrawTerrainMap() {
-    for (int z = 0; z < MaxMapSize; z++) {
-        for (int x = 0; x < MaxMapSize; x++) {
-            DrawCube({float(x), TerrainHeightMap[z][x], float(z)}, 0.5, 0.5, 0.5, RED);
+void LoadSave() {
+    wstring TFlags = LoadFile("GameData/Saves/TF.sav");
+
+    for (int i = 0; i <= 99; i++) {
+        if (TFlags[i] == L'1') {
+            ToggleFlags[i].Value = 1;
+        }
+        if (TFlags[i] == L'0') {
+            ToggleFlags[i].Value = 0;
         }
     }
-}
 
+    wstring Position = LoadFile("GameData/Saves/POS.sav");
+
+    OmegaTechData.LevelIndex = int(ToFloat(WSplitValue(Position, 3)));
+
+    SetCameraFlag = true;
+
+    int X = ToFloat(WSplitValue(Position, 0));
+    int Y = ToFloat(WSplitValue(Position, 1));
+    int Z = ToFloat(WSplitValue(Position, 2));
+    SetCameraPos = {float(X), float(Y), float(Z)};
+
+    ExtraWDLInstructions = LoadFile("GameData/Saves/Script.sav");
+
+    RestorePMemPage();
+}

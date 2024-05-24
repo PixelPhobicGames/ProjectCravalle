@@ -29,10 +29,7 @@ static int VirtualMouseY = 0;
 static int SceneIDMirror = 0;
 
 static bool MapClipping = true;
-static bool UsingClipBox = false;
-static int PlatformHeight = 0;
-static bool FoundPlatform = false;
-static float OriginY = 0;
+
 static bool ParasiteRunning = false;
 
 static bool CodeLogging = false;
@@ -53,15 +50,13 @@ static bool SetCameraFlag = false;
 static Vector3 SetCameraPos = {0,0,0};
 
 static bool SetSunFlag = false;
-static Vector3 SunPos = {0,0,0};
+static Vector3 SetSunPos = { 0,0,0 };
 
 static bool ScriptCollisionMessage = false;
 
 static bool GrassEnabled = false;
 
 static RenderTexture ParasiteTarget;
-static bool UsingParasiteDraw = false;
-
 
 typedef struct Memory{
     string Name;

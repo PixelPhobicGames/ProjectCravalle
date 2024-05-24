@@ -10,7 +10,7 @@ static Color SunLightValues = {15 , 15 , 15 , 255 };
 void UpdateLightSources() {
 
     if (SetSunFlag){
-        OmegaTechData.GameLights[SunID] = CreateLight(LIGHT_DIRECTIONAL, SunPos ,  {SunPos.x , SunPos.y - 1.0f, SunPos.z} , SunLightValues , OmegaTechData.Lights);
+        OmegaTechData.GameLights[SunID] = CreateLight(LIGHT_DIRECTIONAL, SetSunPos ,  {SetSunPos.x , SetSunPos.y - 1.0f, SetSunPos.z} , SunLightValues , OmegaTechData.Lights);
         SetSunFlag = false;
     }
 
@@ -19,8 +19,8 @@ void UpdateLightSources() {
                           OmegaTechData.MainCamera.position.z};
 
 
-    OmegaTechData.GameLights[SunID].position = SunPos;
-    OmegaTechData.GameLights[SunID].target = {SunPos.x , SunPos.y - 1.0f, SunPos.z};
+    OmegaTechData.GameLights[SunID].position = SetSunPos;
+    OmegaTechData.GameLights[SunID].target = {SetSunPos.x , SetSunPos.y - 1.0f, SetSunPos.z};
 
     SetShaderValue(OmegaTechData.Lights,
                     OmegaTechData.Lights.locs[SHADER_LOC_VECTOR_VIEW],

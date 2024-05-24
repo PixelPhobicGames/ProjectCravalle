@@ -932,7 +932,7 @@ auto CycleInstruction(){
                     int Y = StringToInt(SplitValue(Instruction, 2 ));
                     int Z = StringToInt(SplitValue(Instruction, 3 ));
 
-                    SunPos = {float(X) ,float(Y),float(Z)};
+                    SetSunPos = {float(X) ,float(Y),float(Z)};
                     SetSunFlag = true;
 
                     
@@ -1003,15 +1003,6 @@ auto CycleInstruction(){
                     StoreIntToMemory(SplitValue(Instruction, 1 ) , InpValue);
                 }
 
-                if (SplitValue(Instruction, 0 ) == "BeginScene"){
-                    FoundInstruction = true;
-                    UsingParasiteDraw = true;
-                }
-
-                if (SplitValue(Instruction, 0 ) == "EndScene"){
-                    FoundInstruction = true;
-                    UsingParasiteDraw = false;
-                }
 
                 if (SplitValue(Instruction, 0 ) == "DrawFrame"){
                     FoundInstruction = true;

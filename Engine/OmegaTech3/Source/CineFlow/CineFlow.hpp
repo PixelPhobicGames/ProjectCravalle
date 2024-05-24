@@ -19,11 +19,6 @@ using namespace std;
 
 #define MaxScriptSize 100
 
-// Function to calculate linear interpolation
-float Lerp(float a, float b, float t) {
-    return a + t * (b - a);
-}
-
 class CineFlow {
   public:
     Camera CFCamera = {0};
