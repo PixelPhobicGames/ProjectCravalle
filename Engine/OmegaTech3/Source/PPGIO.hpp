@@ -187,7 +187,7 @@ class Input {
     }
 };
 
-static Input OmegaInputController;
+static Input OTInputController;
 
 #ifdef __linux__
 

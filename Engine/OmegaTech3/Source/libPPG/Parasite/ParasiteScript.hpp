@@ -11,8 +11,8 @@ string PMemKey = "9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
 
 
 auto ParasiteScriptLoadFile(const char* Path){
-    std::ifstream Input(Path);
-    std::stringstream sstr;
+    ifstream Input(Path);
+    stringstream sstr;
 
     while(Input >> sstr.rdbuf());
 
@@ -884,10 +884,10 @@ auto CycleInstruction(){
                     string Arg = ReadValue(Instruction , 14, Instruction.size() - 1);
 
                     if (IsNumber(Arg)){ // Pull from LG Langauge Pack
-                        OmegaTechTextSystem.Write(GlobalPackData.Lines[StringToInt(SplitValue(Instruction, 1))]);
+                        OTTextSystem.Write(GlobalPackData.Lines[StringToInt(SplitValue(Instruction, 1))]);
                     }
                     else {
-                        OmegaTechTextSystem.Write(Arg);
+                        OTTextSystem.Write(Arg);
                     }
                     FoundInstruction = true;
                 }

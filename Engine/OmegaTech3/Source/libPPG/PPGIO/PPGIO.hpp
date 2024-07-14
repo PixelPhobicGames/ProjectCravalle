@@ -99,6 +99,6 @@ class Input {
     }
 };
 
-static Input OmegaInputController;
+static Input OTInputController;
 
 #endif

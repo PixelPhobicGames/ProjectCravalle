@@ -1,5 +1,14 @@
 
 #include "OTLights.hpp"
+#include "External/rcamera/rcamera.h"
+
+#define MaxGrass 1000
+
+int RenderedGrass = 320;
+bool GrassScan = true;
+int GrassTicker = 0;
+
+Vector3 GrassPositions[MaxGrass];
 
 void UpdateGrassGeneration() {
     if (GrassEnabled) {
@@ -17,10 +26,10 @@ void UpdateGrassGeneration() {
             int Range = 300;
 
             for (int i = 0; i <= RenderedGrass - 1; i++) {
-                int GrassX = GetRandomValue(int(OmegaTechData.MainCamera.position.x - Range),
-                                            int(OmegaTechData.MainCamera.position.x + Range));
-                int GrassZ = GetRandomValue(int(OmegaTechData.MainCamera.position.z - Range),
-                                            int(OmegaTechData.MainCamera.position.z + Range));
+                int GrassX = GetRandomValue(int(OTCoreData.RenderCamera.position.x - Range),
+                                            int(OTCoreData.RenderCamera.position.x + Range));
+                int GrassZ = GetRandomValue(int(OTCoreData.RenderCamera.position.z - Range),
+                                            int(OTCoreData.RenderCamera.position.z + Range));
                 int GrassHeight = TerrainHeightMap[GrassZ][GrassX];
 
                 GrassPositions[i] = {GrassX, GrassHeight, GrassZ};
@@ -45,21 +54,27 @@ class Custom {
 };
 
 static Custom CustomData;
+RenderTexture2D UITarget;
+Camera3D UICamera;
+
 
 void LoadCustom(int ID) { // Custom  in Engine Level Behavior
     switch (ID) {
         case 1:
+            OTCoreData.GameLights[1] = CreateLight(LIGHT_POINT, {141.886612f , -0.178921f , 179.653900f },   {141.886612f , -0.178921f , 179.653900f }, { 26 , 26 , 26 , 200} , OTCoreData.Lights);
+
+            UITarget = LoadRenderTexture(GetScreenWidth() / 4, GetScreenHeight() / 4);
+
+            UICamera.position = (Vector3){0.0f, 0.0f, 1.0f};
+            UICamera.target = (Vector3){0.0f, 0.0f, 0.0f};
+            UICamera.up = (Vector3){0.0f, 1.0f, 0.0f};
+            UICamera.fovy = 60.0f;
+            UICamera.projection = CAMERA_PERSPECTIVE;
+
             CustomData.SunValues = 255;
             CustomData.SunDirection = 0;
             CustomData.SunCounter = 0;
 
-            if (IsPathFile("GameData/Global/FModels/FModel1.gltf")) {
-                FastModels[1].ModelData= LoadModel("GameData/Global/FModels/FModel1.gltf");
-                FastModels[1].ModelTexture= LoadTexture("GameData/Global/FModels/FModel1Texture.png");
-                FastModels[1].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = FastModels[1].ModelTexture;
-                FastModels[1].ModelData.materials[0].shader = OmegaTechData.Lights;
-            }
-            
             break;
     }
 }
@@ -108,11 +123,10 @@ void UpdateCustom(int ID) {
     }
 }
 
+
 auto UpdateCustomUI(int ID) {
     switch (ID) {
         case 1:
-
-
             break;
 
         default:

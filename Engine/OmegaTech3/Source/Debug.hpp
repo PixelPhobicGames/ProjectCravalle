@@ -1,98 +1,70 @@
 #include "Data.hpp"
 
-bool TextBox001EditMode = false;
-char TextBox001Text[128] = "";
-bool TextBox002EditMode = false;
-char TextBox002Text[1024] = "OmegaConsole\n";
+class OTConsole {
+    public:
+        bool ConsoleBoxEditMode = false;
+        char ConsoleTextBuffer[128] = "";
 
-void PrintConsole(const char *Message) {
-    strcat(TextBox002Text, Message);
-}
+        bool MainConsoleEditMode = false;
+        char MainConsoleBuffer[1024] = "OmegaConsole\n";
 
-void ConsoleParseCommand(const char *Command) {
-    bool Found = false;
-
-    string CommandValue(Command);
-
-    if (CommandValue == "ExportTerrain") {
-        PrintConsole("Exporting Terrain As Mesh\n");
-        if (ExportMesh(TerrainData.HeightMap.meshes[0], "Terrain.obj")) {
-            PrintConsole("Done.. Stored in Terrain.obj\n");
+        void PrintConsole(const char *Message) {
+            strcat(MainConsoleBuffer, Message);
         }
-        Found = true;
-    }
 
-    if (CommandValue == "SigGen") {
-        string Data = WstringToString(WorldData);
-        string NewSig = SignatureGen<string>(Data);
+        void ConsoleParseCommand(const char *Command) {
+            bool Found = false;
 
-        cout << NewSig << "\n";
+            string CommandValue(Command);
 
-        PrintConsole("Done.\n");
-        Found = true;
-    }
+            if (CommandValue == "ExportTerrain") {
+                PrintConsole("Exporting Terrain As Mesh\n");
+                if (ExportMesh(TerrainData.HeightMap.meshes[0], "Terrain.obj")) {
+                    PrintConsole("Done.. Stored in Terrain.obj\n");
+                }
+                Found = true;
+            }
 
-    if (CommandValue == "Rumble") {
-        RumblePulse();
-        Found = true;
-    }
+            if (CommandValue == "SigGen") {
+                string Data = WstringToString(WorldData);
+                string NewSig = SignatureGen<string>(Data);
 
-    if (!Found) {
-        PrintConsole("Command Not Found: ");
-        PrintConsole(Command);
-        PrintConsole("<--\n");
-    }
-}
+                cout << NewSig << "\n";
 
-int CommandCounter = 0;
-
-void DrawConsole() {
-    GuiPanel((Rectangle){0, 40, 616, 288}, NULL);
-
-    if (GuiTextBox((Rectangle){8, 296, 600, 24}, TextBox001Text, 128, TextBox001EditMode))
-        TextBox001EditMode = !TextBox001EditMode;
-
-    if (GuiTextBox((Rectangle){8, 48, 600, 240}, TextBox002Text, 1024, TextBox002EditMode)) {
-    }
-
-    if (IsKeyPressed(KEY_ENTER)) {
-        ConsoleParseCommand(TextBox001Text);
-        TextBox001Text[0] = '\0';
-        CommandCounter++;
-
-        if (CommandCounter == 2) {
-            TextBox002Text[0] = '\0';
-            CommandCounter = 0;
+                PrintConsole("Done.\n");
+                Found = true;
+            }
+            
+            if (!Found) {
+                PrintConsole("Command Not Found: ");
+                PrintConsole(Command);
+                PrintConsole("<--\n");
+            }
         }
-    }
-}
 
-void CheckKey() {
-#ifdef Linux
-    char hostname[100];
-    gethostname(hostname, 100);
+        int CommandCounter = 0;
 
-    cout << "USER: " << hostname << "\n";
+        void Draw() {
+            GuiPanel((Rectangle){0, 40, 616, 288}, NULL);
 
-    wstring encodedData = CharArrayToWString(hostname);
-    encodedData = Encode(encodedData, MainKey);
+            if (GuiTextBox((Rectangle){8, 296, 600, 24}, ConsoleTextBuffer, 128, ConsoleBoxEditMode))
+                ConsoleBoxEditMode = !ConsoleBoxEditMode;
 
-    if (!IsPathFile("GameData/Key/Key.sig")) {
-        ofstream SigFile("GameData/Key/Key.sig");
+            if (GuiTextBox((Rectangle){8, 48, 600, 240}, MainConsoleBuffer, 1024, MainConsoleEditMode)) {
 
-        if (SigFile.is_open()) {
-            SigFile << TextFormat("%ls", encodedData.c_str());
-            SigFile.close();
-        } else {
-            cerr << "Error opening file for writing.\n";
+            }
+
+            if (IsKeyPressed(KEY_ENTER)) {
+                ConsoleParseCommand(ConsoleTextBuffer);
+                ConsoleTextBuffer[0] = '\0';
+                CommandCounter++;
+
+                if (CommandCounter == 2) {
+                    MainConsoleBuffer[0] = '\0';
+                    CommandCounter = 0;
+                }
+            }
         }
-    } else {
-        wstring Data = LoadFile("GameData/Key/Key.sig");
+};
 
-        if (!(Data[3] == encodedData[3])) {
-            wcout << Data << " != " << encodedData << "\n";
-            exit(0);
-        }
-    }
-#endif
-}
+static OTConsole OTDebugConsole;

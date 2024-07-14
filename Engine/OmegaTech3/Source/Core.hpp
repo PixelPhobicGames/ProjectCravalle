@@ -1,7 +1,6 @@
 #include "Worlds.hpp"
 
-
-void OmegaTechInit() {
+void OTInit() {
     ParasiteScriptTFlagWipe();
 
     GuiLoadStyle();
@@ -10,53 +9,44 @@ void OmegaTechInit() {
     InitSig();
 #endif
 
-    OmegaTechData.InitCamera();
+    OTCoreData.InitCamera();
 
-    OmegaTechData.Bloom = LoadShader(0, "GameData/Shaders/Bloom.fs");
-    OmegaTechData.Lights = LoadShader("GameData/Shaders/Lights/Lighting.vs", "GameData/Shaders/Lights/Fog.fs");
+    OTCoreData.Lights = LoadShader("GameData/Shaders/Lights/Lighting.vs", "GameData/Shaders/Lights/Fog.fs");
 
-    OmegaTechData.GameLights[MAX_LIGHTS] = {0};
+    OTCoreData.GameLights[MAX_LIGHTS] = {0};
 
-    OmegaTechData.Lights.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(OmegaTechData.Lights, "viewPos");
+    OTCoreData.Lights.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(OTCoreData.Lights, "viewPos");
 
     float FogDensity = 0.005f;
-    int FogDensityLoc = GetShaderLocation(OmegaTechData.Lights, "fogDensity");
+    int FogDensityLoc = GetShaderLocation(OTCoreData.Lights, "fogDensity");
 
-    SetShaderValue(OmegaTechData.Lights, FogDensityLoc, &FogDensity, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(OTCoreData.Lights, FogDensityLoc, &FogDensity, SHADER_UNIFORM_FLOAT);
 
-    if (IsPathFile("GameData/Global/Title/Title.png"))
-        OmegaTechData.HomeScreen = LoadTexture("GameData/Global/Title/Title.png");
-    if (IsPathFile("GameData/Global/Title/Title.mpg"))
-        OmegaTechData.HomeScreenVideo = ray_video_open("GameData/Global/Title/Title.mpg");
-    if (IsPathFile("GameData/Global/Title/Title.mp3"))
-        OmegaTechData.HomeScreenMusic = LoadMusicStream("GameData/Global/Title/Title.mp3");
+    OTTextSystem.Bar = LoadTexture("GameData/Global/TextBar.png");
+    OTTextSystem.BarFont = LoadFont("GameData/Global/Font.ttf");
+    OTTextSystem.RussianBarFont = LoadFont("GameData/Global/Cyrillic.fnt");
+    OTTextSystem.LatinBarFont = LoadFont("GameData/Global/Latin.fnt");
+    OTTextSystem.JapaneseBarFont = LoadFont("GameData/Global/Hiragana.fnt");
 
-    OmegaTechTextSystem.Bar = LoadTexture("GameData/Global/TextBar.png");
-    OmegaTechTextSystem.BarFont = LoadFont("GameData/Global/Font.ttf");
-    OmegaTechTextSystem.RussianBarFont = LoadFont("GameData/Global/Cyrillic.fnt");
-    OmegaTechTextSystem.LatinBarFont = LoadFont("GameData/Global/Latin.fnt");
-    OmegaTechTextSystem.JapaneseBarFont = LoadFont("GameData/Global/Hiragana.fnt");
+    OTSoundData.CollisionSound = LoadSound("GameData/Global/Sounds/CollisionSound.mp3");
+    OTSoundData.WalkingSound = LoadSound("GameData/Global/Sounds/WalkingSound.mp3");
+    OTSoundData.ChasingSound = LoadSound("GameData/Global/Sounds/ChasingSound.mp3");
+    OTSoundData.UIClick = LoadSound("GameData/Global/Title/Click.mp3");
+    OTSoundData.Death = LoadSound("GameData/Global/Sounds/Hurt.mp3");
 
-    OmegaTechSoundData.CollisionSound = LoadSound("GameData/Global/Sounds/CollisionSound.mp3");
-    OmegaTechSoundData.WalkingSound = LoadSound("GameData/Global/Sounds/WalkingSound.mp3");
-    OmegaTechSoundData.ChasingSound = LoadSound("GameData/Global/Sounds/ChasingSound.mp3");
-    OmegaTechSoundData.UIClick = LoadSound("GameData/Global/Title/Click.mp3");
-    OmegaTechSoundData.Death = LoadSound("GameData/Global/Sounds/Hurt.mp3");
-
-    OmegaTechTextSystem.TextNoise = LoadSound("GameData/Global/Sounds/TalkingNoise.mp3");
-    OmegaTechData.Cursor = LoadTexture("GameData/Global/Cursor.png");
+    OTTextSystem.TextNoise = LoadSound("GameData/Global/Sounds/TalkingNoise.mp3");
 
     for (int i = 1 ; i <= 5; i ++){
         if (IsPathFile(TextFormat("GameData/Global/FModels/FModel%i.gltf", i))) {
             FastModels[i].ModelData = LoadModel(TextFormat("GameData/Global/FModels/FModel%i.gltf", i));
             FastModels[i].ModelTexture = LoadTexture(TextFormat("GameData/Global/FModels/FModel%iTexture.png", i));
             FastModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = FastModels[i].ModelTexture;
-            FastModels[i].ModelData.materials[0].shader = OmegaTechData.Lights;
+            FastModels[i].ModelData.materials[0].shader = OTCoreData.Lights;
         }
     }
 
 
-    Target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    OTCoreData.RenderTarget = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     ParasiteTarget = LoadRenderTexture(1280, 720);
 
     WorldData.reserve(MaxWStringAlloc);
@@ -66,67 +56,38 @@ void OmegaTechInit() {
     FinalWDL.reserve(MaxWStringAlloc * 3);
 
     OTSkybox.InitSkybox();
-
-    PlayMusicStream(OmegaTechData.HomeScreenMusic);
 }
 
-
-
-void PlayFMV() {
-    ray_video_t FMVVideo;
-    FMVVideo = ray_video_open("GameData/Global/Movies/Opening.mpg");
-    Sound VideoSound = LoadSound("GameData/Global/Movies/Opening.mp3");
-
-    PlaySound(VideoSound);
-
-    while (true && !WindowShouldClose()) {
-        BeginTextureMode(Target);
-        ClearBackground(BLACK);
-        ray_video_update(&FMVVideo, GetFrameTime());
-        DrawTexturePro(FMVVideo.texture,
-                       (Rectangle){0, 0, FMVVideo.width, FMVVideo.height},
-                       (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
-                       (Vector2){0, 0},
-                       0.f,
-                       WHITE);
-        EndTextureMode();
-        BeginDrawing();
-
-        DrawTexturePro(Target.texture,
-                       (Rectangle){0, 0, Target.texture.width, -Target.texture.height},
-                       (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()},
-                       (Vector2){0, 0},
-                       0.f,
-                       WHITE);
-
-        EndDrawing();
-
-        if (FMVVideo.video_state == RAY_VIDEO_STATE_DONE || (IsKeyPressed(KEY_SPACE))) {
-            UnloadSound(VideoSound);
-            UnloadRenderTexture(Target);
-            Target = LoadRenderTexture(GetScreenWidth() / 4, GetScreenHeight() / 4);
-            ray_video_destroy(&FMVVideo);
-            break;
-        }
-    }
-}
 
 bool LDropdownBoxEditMode = false;
 int LDropdownBoxActive = 0;
 
 void PlayHomeScreen() {
+
+    OTVideo HomeScreenVideo;
+    Music HomeScreenMusic;
+    Texture2D Cursor;
     Texture2D TitleImage = LoadTexture("GameData/Global/Title/Title.png");
 
     int MousePoint = 0;
 
+    if (IsPathFile("GameData/Global/Title/Title.mpg")) HomeScreenVideo.Load("GameData/Global/Title/Title.mpg");
+
+    if (IsPathFile("GameData/Global/Title/Title.mp3")){
+        HomeScreenMusic = LoadMusicStream("GameData/Global/Title/Title.mp3");
+        PlayMusicStream(HomeScreenMusic);
+    }
+
+    if (IsPathFile("GameData/Global/Cursor.png")) Cursor = LoadTexture("GameData/Global/Cursor.png");
+
     while (true && !WindowShouldClose()) {
-        BeginTextureMode(Target);
-        UpdateMusicStream(OmegaTechData.HomeScreenMusic);
+        BeginTextureMode(OTCoreData.RenderTarget);
+        UpdateMusicStream(HomeScreenMusic);
 
         ClearBackground(BLACK);
 
-        if (OmegaInputController.InteractPressed) {
-            PlaySound(OmegaTechSoundData.UIClick);
+        if (OTInputController.InteractPressed) {
+            PlaySound(OTSoundData.UIClick);
         }
 
         DrawTexture(TitleImage, 0, 0, WHITE);
@@ -152,23 +113,20 @@ void PlayHomeScreen() {
                 LoadLanguagePack(FrenchPack, &GlobalPackData);
             }
 
-            OmegaTechTextSystem.LanguageType = GlobalPackData.Type;
+            OTTextSystem.LanguageType = GlobalPackData.Type;
 
-            UnloadMusicStream(OmegaTechData.HomeScreenMusic);
-            ray_video_destroy(&OmegaTechData.HomeScreenVideo);
-
-            // PlayFMV();
+            UnloadMusicStream(HomeScreenMusic);
+            UnloadTexture(Cursor);
+            UnloadTexture(TitleImage);
             
-            UnloadRenderTexture(Target);
-            Target = LoadRenderTexture(GetScreenWidth() , GetScreenHeight() );
-
-
+            UnloadRenderTexture(OTCoreData.RenderTarget);
+            OTCoreData.RenderTarget = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
             break;
         }
 
         if (GuiButton((Rectangle){144, 288, 176, 48}, "Load")) {
-            UnloadRenderTexture(Target);
-            Target = LoadRenderTexture(GetScreenWidth() / 4, GetScreenHeight() / 4);
+            UnloadRenderTexture(OTCoreData.RenderTarget);
+            OTCoreData.RenderTarget = LoadRenderTexture(GetScreenWidth() / 4, GetScreenHeight() / 4);
 
             if (LDropdownBoxActive == EnglishPack) {
                 LoadLanguagePack(EnglishPack, &GlobalPackData);
@@ -186,10 +144,11 @@ void PlayHomeScreen() {
                 LoadLanguagePack(FrenchPack, &GlobalPackData);
             }
 
-            OmegaTechTextSystem.LanguageType = GlobalPackData.Type;
+            OTTextSystem.LanguageType = GlobalPackData.Type;
 
-            UnloadMusicStream(OmegaTechData.HomeScreenMusic);
-            ray_video_destroy(&OmegaTechData.HomeScreenVideo);
+            UnloadMusicStream(HomeScreenMusic);
+            UnloadTexture(Cursor);
+            UnloadTexture(TitleImage);
 
             if (IsPathFile("GameData/Saves/TF.sav")) {
                 LoadSave();
@@ -200,8 +159,8 @@ void PlayHomeScreen() {
         EndTextureMode();
         BeginDrawing();
 
-        DrawTexturePro(Target.texture,
-                       (Rectangle){0, 0, Target.texture.width, -Target.texture.height},
+        DrawTexturePro(OTCoreData.RenderTarget.texture,
+                       (Rectangle){0, 0, OTCoreData.RenderTarget.texture.width, -OTCoreData.RenderTarget.texture.height},
                        (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()},
                        (Vector2){0, 0},
                        0.f,
@@ -209,13 +168,13 @@ void PlayHomeScreen() {
 
         if (IsGamepadAvailable(0)) {
             if (MousePoint == 0) {
-                DrawTextureEx(OmegaTechData.Cursor, {168 + 176 + 5, 256 - 48}, 0.0f, 3, WHITE);
+                DrawTextureEx(Cursor, {168 + 176 + 5, 256 - 48}, 0.0f, 3, WHITE);
 
                 if (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) >= 0.25f) {
                     MousePoint = 1;
                 }
             } else {
-                DrawTextureEx(OmegaTechData.Cursor, {144 + 176 + 5, 288}, 0.0f, 3, WHITE);
+                DrawTextureEx(Cursor, {144 + 176 + 5, 288}, 0.0f, 3, WHITE);
 
                 if (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) <= 0.25f) {
                     MousePoint = 0;
@@ -225,161 +184,109 @@ void PlayHomeScreen() {
 
         EndDrawing();
 
-        if (IsKeyPressed(KEY_ESCAPE))
-            exit(0);
+        if (IsKeyPressed(KEY_ESCAPE)) exit(0);
     }
 
-    StopMusicStream(OmegaTechData.HomeScreenMusic);
+    StopMusicStream(HomeScreenMusic);
+
 }
 
 
 void UpdatePlayer() {
     if (IsKeyDown(KEY_W) || GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 && !Debug) {
-        if (HeadBob) {
-            if (OmegaTechData.Ticker % 2 == 0) {
-                OmegaTechData.MainCamera.target.y += OmegaPlayer.HeadBob;
-                if (OmegaPlayer.HeadBobDirection == 1) {
-                    if (OmegaPlayer.HeadBob != 1) {
-                        OmegaPlayer.HeadBob++;
-                    } else {
-                        OmegaPlayer.HeadBobDirection = 0;
-                    }
-                } else {
-                    if (OmegaPlayer.HeadBob != -1) {
-                        OmegaPlayer.HeadBob--;
-                    } else {
-                        OmegaPlayer.HeadBobDirection = 1;
-                    }
-                }
-            }
-        }
-        if (!IsSoundPlaying(OmegaTechSoundData.WalkingSound)) {
-            PlaySound(OmegaTechSoundData.WalkingSound);
+        if (!IsSoundPlaying(OTSoundData.WalkingSound)) {
+            PlaySound(OTSoundData.WalkingSound);
         }
     }
 
     if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
         GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 || GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0) {
-        if (!IsSoundPlaying(OmegaTechSoundData.WalkingSound)) {
-            PlaySound(OmegaTechSoundData.WalkingSound);
+        if (!IsSoundPlaying(OTSoundData.WalkingSound)) {
+            PlaySound(OTSoundData.WalkingSound);
         }
     } else {
-        if (IsSoundPlaying(OmegaTechSoundData.WalkingSound)) {
-            StopSound(OmegaTechSoundData.WalkingSound);
+        if (IsSoundPlaying(OTSoundData.WalkingSound)) {
+            StopSound(OTSoundData.WalkingSound);
         }
     }
 
-    OmegaPlayer.PlayerBounds = (BoundingBox){(Vector3){OmegaTechData.MainCamera.position.x - OmegaPlayer.Width / 2,
-                                                       OmegaTechData.MainCamera.position.y - OmegaPlayer.Height,
-                                                       OmegaTechData.MainCamera.position.z - OmegaPlayer.Width / 2},
-                                             (Vector3){OmegaTechData.MainCamera.position.x + OmegaPlayer.Width / 2,
-                                                       OmegaTechData.MainCamera.position.y,
-                                                       OmegaTechData.MainCamera.position.z + OmegaPlayer.Width / 2}};
-
     if (MapClipping && !QMapSystem.UsingQMaps) {
-        if (OmegaTechData.MainCamera.position.z >= 0 && OmegaTechData.MainCamera.position.z <= TerrainData.HeightMapW) {
-            if (OmegaTechData.MainCamera.position.x >= 0 &&
-                OmegaTechData.MainCamera.position.x <= TerrainData.HeightMapW) {
+        if (OTCoreData.RenderCamera.position.z >= 0 && OTCoreData.RenderCamera.position.z <= TerrainData.HeightMapW) {
+            if (OTCoreData.RenderCamera.position.x >= 0 &&
+                OTCoreData.RenderCamera.position.x <= TerrainData.HeightMapW) {
                 if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
                     GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) != 0 ||
                     GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) != 0) {
-                    OmegaTechData.MainCamera.position.y = 8 +
-                                                          TerrainHeightMap[int(OmegaTechData.MainCamera.position.z)]
-                                                                          [int(OmegaTechData.MainCamera.position.x)];
+                    OTCoreData.RenderCamera.position.y = 8 +
+                                                          TerrainHeightMap[int(OTCoreData.RenderCamera.position.z)]
+                                                                          [int(OTCoreData.RenderCamera.position.x)];
                 }
             }
         }
     }
+
+    OTPlayer.PlayerBounds = (BoundingBox){(Vector3){OTCoreData.RenderCamera.position.x - OTPlayer.Width / 2,
+                                                       OTCoreData.RenderCamera.position.y - OTPlayer.Height,
+                                                       OTCoreData.RenderCamera.position.z - OTPlayer.Width / 2},
+                                             (Vector3){OTCoreData.RenderCamera.position.x + OTPlayer.Width / 2,
+                                                       OTCoreData.RenderCamera.position.y,
+                                                       OTCoreData.RenderCamera.position.z + OTPlayer.Width / 2}};
 }
 
 void DrawWorld() {
-    BeginTextureMode(Target);
+    BeginTextureMode(OTCoreData.RenderTarget);
     ClearBackground(BLACK);
 
     if (!UsingCineFlow) {
-        BeginMode3D(OmegaTechData.MainCamera);
+        BeginMode3D(OTCoreData.RenderCamera);
     } else {
         BeginMode3D(CineFlowData.CFCamera);
     }
 
-    if (OmegaTechSoundData.MusicFound) {
-        UpdateMusicStream(OmegaTechSoundData.BackgroundMusic);
+    if (OTSoundData.MusicFound) {
+        UpdateMusicStream(OTSoundData.BackgroundMusic);
     }
 
     UpdateNoiseEmitters();
 
-    if (!OmegaTechData.UseCachedRenderer) {
-        WDLProcess();
-    } else {
-        CWDLProcess();
-        WDLProcess();
+
+    CWDLProcess();
+    WDLProcess();
+    
+
+    if (QMapSystem.UsingQMaps) QMapSystem.RenderQMap();
+    if (!UsingCineFlow) UpdatePlayer();
+    
+    
+    if (OTPlayer.ObjectCollision) {
+        OTCoreData.RenderCamera.position.x = OTPlayer.OldX;
+        OTCoreData.RenderCamera.position.y = OTPlayer.OldY;
+        OTCoreData.RenderCamera.position.z = OTPlayer.OldZ;
+        OTPlayer.ObjectCollision = false;
     }
 
-    if (QMapSystem.UsingQMaps){
-        QMapSystem.RenderQMap();
-    }
-
-    if (!UsingCineFlow) {
-        UpdatePlayer();
-    }
-
-    if (Debug) {
-        DrawLights();
-    }
-
-    if (ObjectCollision) {
-        OmegaTechData.MainCamera.position.x = OmegaPlayer.OldX;
-        OmegaTechData.MainCamera.position.y = OmegaPlayer.OldY;
-        OmegaTechData.MainCamera.position.z = OmegaPlayer.OldZ;
-        ObjectCollision = false;
-    }
-
-    UpdateCustom(OmegaTechData.LevelIndex);
+    UpdateCustom(OTCoreData.LevelIndex);
 
     EndMode3D();
 
     EndTextureMode();
 
     if (SetSceneFlag) {
-        OmegaTechData.LevelIndex = SetSceneId;
+        OTCoreData.LevelIndex = SetSceneId;
         LoadWorld();
         SetSceneFlag = false;
     }
 
     if (SetCameraFlag) {
-        OmegaTechData.MainCamera.position = SetCameraPos;
+        OTCoreData.RenderCamera.position = SetCameraPos;
         SetCameraFlag = false;
     }
 
-    if (ScriptTimer != 0) {
-        ScriptTimer--;
-    }
+    if (ScriptTimer != 0) ScriptTimer--;
 
-    if (OmegaTechData.Ticker != 60) {
-        OmegaTechData.Ticker ++;
+    if (OTCoreData.Ticker != 60) {
+        OTCoreData.Ticker ++;
     } else {
-        OmegaTechData.Ticker = 0;
-    }
-}
-
-void DisplayInteractText() {
-    if (!IsGamepadAvailable(0)) {
-        DrawTextEx(OmegaTechTextSystem.BarFont,
-                   "Press Left Click to Interact",
-                   {GetScreenWidth() / 2 -
-                        MeasureTextEx(OmegaTechTextSystem.BarFont, "Press Left Click to Interact", 25, 1).x / 2,
-                    720 / 2},
-                   25,
-                   1,
-                   WHITE);
-    } else {
-        DrawTextEx(
-            OmegaTechTextSystem.BarFont,
-            "Press A to Interact",
-            {GetScreenWidth() / 2 - MeasureTextEx(OmegaTechTextSystem.BarFont, "Press A to Interact", 25, 1).x / 2,
-             720 / 2},
-            25,
-            1,
-            WHITE);
+        OTCoreData.Ticker = 0;
     }
 }

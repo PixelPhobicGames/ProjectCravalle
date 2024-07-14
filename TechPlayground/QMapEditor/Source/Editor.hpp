@@ -139,7 +139,7 @@ class Editor {
                         MDistance = .50f;
                     }
                     if (IsKeyPressed(KEY_C)){
-                        MDistance = 2.0f;
+                        MDistance = 10.0f;
                     }
 
                     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
@@ -164,7 +164,7 @@ class Editor {
                             case 4:
                                 Point4 = PFCPoint;
 
-                                wstring OldData = LoadFile("Working/World1.qmap");
+                                wstring OldData = LoadFile("Working/World.qmap");
 
                                 wstring NewData = L"";
 
@@ -189,11 +189,11 @@ class Editor {
                                 NewData += to_wstring(EditorTextureID) + L":";
 
                                 wofstream OutFile;
-                                OutFile.open("Working/World1.qmap");
+                                OutFile.open("Working/World.qmap");
                                 OutFile << OldData + NewData;
                                 OutFile.close();
 
-                                QMapSystem.LoadQMap("Working/World1.qmap");
+                                QMapSystem.LoadQMap("Working/World.qmap");
 
                                 Point1 = {0 , 0 , 0};
                                 Point2 = {0 , 0 , 0};
@@ -252,7 +252,7 @@ class Editor {
                         MDistance = .50f;
                     }
                     if (IsKeyPressed(KEY_C)){
-                        MDistance = 2.0f;
+                        MDistance = 10.0f;
                     }
 
                     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
@@ -334,7 +334,7 @@ class Editor {
                                 }
 
 
-                                wstring OldData = LoadFile("Working/World1.qmap");
+                                wstring OldData = LoadFile("Working/World.qmap");
 
                                 wstring NewData = L"";
 
@@ -360,11 +360,11 @@ class Editor {
                                 NewData += to_wstring(EditorTextureID) + L":";
 
                                 wofstream OutFile;
-                                OutFile.open("Working/World1.qmap");
+                                OutFile.open("Working/World.qmap");
                                 OutFile << OldData + NewData;
                                 OutFile.close();
 
-                                QMapSystem.LoadQMap("Working/World1.qmap");
+                                QMapSystem.LoadQMap("Working/World.qmap");
 
                                 Point1 = {0 , 0 , 0};
                                 Point2 = {0 , 0 , 0};
@@ -449,11 +449,11 @@ class Editor {
                                 QMapSystem.WallCounter --;
 
                                 wofstream OutFile;
-                                OutFile.open("Working/World1.qmap");
+                                OutFile.open("Working/World.qmap");
                                 OutFile << NWallData + NFloorData;
                                 OutFile.close();
 
-                                QMapSystem.LoadQMap("Working/World1.qmap");
+                                QMapSystem.LoadQMap("Working/World.qmap");
                             
                             }
                         }

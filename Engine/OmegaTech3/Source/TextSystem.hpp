@@ -143,7 +143,7 @@ class TextSystem {
                     PlaySound(TextNoise);
                 }
 
-                if (OmegaInputController.TextButton) {
+                if (OTInputController.TextButton) {
                     Red = 255;
                     Green = 255;
                     Blue = 255;
@@ -179,4 +179,4 @@ class TextSystem {
     }
 };
 
-static TextSystem OmegaTechTextSystem;
+static TextSystem OTTextSystem;

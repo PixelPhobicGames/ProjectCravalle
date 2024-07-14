@@ -8,7 +8,6 @@
 
 #include "libPPG/Parasite/ParasiteScript.hpp"
 #include "libPPG/ParticleDemon/ParticleDemon.hpp"
-#include "libPPG/Rumble.hpp"
 #include "libPPG/Security/SigCheck.hpp"
 
 #include "External/rlights/rlights.h"
@@ -46,20 +45,15 @@ using namespace std;
 #endif
 
 #define ModelCount 21
-
 #define MaxCachedModels 200
 #define MaxMapSize 4096
 #define MaxWStringAlloc 1048576
 
-bool FloorCollision = true;
-bool ObjectCollision = false;
-
 static bool Debug = false;
-static bool HeadBob = true;
 static bool FPSEnabled = false;
-static bool ConsoleToggle = false;
 static bool UIToggle = true;
-static RenderTexture2D Target;
+static bool ConsoleToggle = false;
+
 
 static wstring WorldData;
 static wstring OtherWDLData;
@@ -68,52 +62,31 @@ static wstring FinalWDL;
 static float AmbientLightValues[4] = {0.1f, 0.1f, 0.1f, 0.1f};
 static float TerrainHeightMap[MaxMapSize][MaxMapSize];
 
-#define MaxGrass 1000
-
-int RenderedGrass = 320;
-
-bool GrassScan = true;
-int GrassTicker = 0;
-
-Vector3 GrassPositions[MaxGrass];
-
 class EngineData {
   public:
-    int LevelIndex = 1;
-    Camera MainCamera = {0};
 
-    Shader FinalShader;
-    Shader Bloom;
+    Camera RenderCamera = {0};
     Shader Lights;
-
     Light GameLights[MAX_LIGHTS];
+    RenderTexture2D RenderTarget;
 
-    ParticleSystem RainParticles;
-    Texture HomeScreen;
-    ray_video_t HomeScreenVideo;
-    Music HomeScreenMusic;
-
+    int LevelIndex = 1;
     int Ticker = 0;
     int CameraSpeed = 1;
-    int RenderRadius = 1000;
+
     int PopInRadius = 800;
     int LODSwapRadius = 160;
 
-    bool UseCachedRenderer = true;
-    int BadPreformaceCounter = 0;
-
-    Texture2D Cursor;
-
     void InitCamera() {
-        MainCamera.position = (Vector3){0.0f, 9.0f, 0.0f};
-        MainCamera.target = (Vector3){0.0f, 10.0f, 0.0f};
-        MainCamera.up = (Vector3){0.0f, 1.0f, 0.0f};
-        MainCamera.fovy = 60.0f;
-        MainCamera.projection = CAMERA_PERSPECTIVE;
+        RenderCamera.position = (Vector3){0.0f, 9.0f, 0.0f};
+        RenderCamera.target = (Vector3){0.0f, 10.0f, 0.0f};
+        RenderCamera.up = (Vector3){0.0f, 1.0f, 0.0f};
+        RenderCamera.fovy = 60.0f;
+        RenderCamera.projection = CAMERA_PERSPECTIVE;
     }
 };
 
-static EngineData OmegaTechData;
+static EngineData OTCoreData;
 
 class Skybox{
     public:
@@ -126,26 +99,27 @@ class Skybox{
             Mesh Cube = GenMeshCube(1.0f, 1.0f, 1.0f);
             SkyboxModel = LoadModelFromMesh(Cube);
             SkyboxModel.materials[0].shader = LoadShader("GameData/Shaders/Skybox/skybox.vs", "GameData/Shaders/Skybox/skybox.fs");
+
             bool UseHDR = false;
 
-            int materialMapCubemap = MATERIAL_MAP_CUBEMAP;
-            int doGamma = UseHDR ? 1 : 0;
-            int vFlipped = UseHDR ? 1 : 0;
+            int MaterialMapCubemap = MATERIAL_MAP_CUBEMAP;
+            int DoGamma = UseHDR ? 1 : 0;
+            int VFlipped = UseHDR ? 1 : 0;
 
-            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &materialMapCubemap, SHADER_UNIFORM_INT);
-            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &doGamma, SHADER_UNIFORM_INT);
-            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &vFlipped, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &MaterialMapCubemap, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &DoGamma, SHADER_UNIFORM_INT);
+            SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &VFlipped, SHADER_UNIFORM_INT);
 
             CubemapShader = LoadShader("GameData/Shaders/Skybox/cubemap.vs", "GameData/Shaders/Skybox/cubemap.fs");
 
-            int equirectangularMapValue = 0;
-            SetShaderValue(CubemapShader, GetShaderLocation(CubemapShader, "equirectangularMap"), &equirectangularMapValue, SHADER_UNIFORM_INT);
+            int EquirectangularMapValue = 0;
+            SetShaderValue(CubemapShader, GetShaderLocation(CubemapShader, "equirectangularMap"), &EquirectangularMapValue, SHADER_UNIFORM_INT);
         }
 
         void LoadSkybox(const char* path){
-            Image img = LoadImage(path);
-            SkyboxModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);
-            UnloadImage(img);
+            Image SkyboxImage = LoadImage(path);
+            SkyboxModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = LoadTextureCubemap(SkyboxImage, CUBEMAP_LAYOUT_AUTO_DETECT);
+            UnloadImage(SkyboxImage);
         }
 
         void Draw(){
@@ -164,6 +138,7 @@ static Skybox OTSkybox;
 class Terrain {
     public:
         Vector3 HeightMapPosition;
+
         int HeightMapW = 0;
         int HeightMapH = 0;
 
@@ -179,8 +154,8 @@ class GameModels {
     Texture2D ModelTexture;
 };
 
-static GameModels WDLModels[ModelCount];
-static GameModels WLowDetailModels[ModelCount];
+static GameModels MapModels[ModelCount];
+static GameModels LowDetalMapModels[ModelCount];
 
 bool LowDetail[ModelCount];
 
@@ -250,7 +225,33 @@ class GameSounds {
     bool MusicFound = false;
 };
 
-static GameSounds OmegaTechSoundData;
+static GameSounds OTSoundData;
+
+void CheckKey() {
+#ifdef Linux
+    char OSHostname[100];
+
+    gethostname(OSHostname, 100);
+
+    wstring EncodedHostname = CharArrayToWString(OSHostname);
+
+    EncodedHostname = Encode(EncodedHostname, MainKey);
+
+    if (!IsPathFile("GameData/Key/Key.sig")) {
+        ofstream SigFile("GameData/Key/Key.sig");
+
+        if (SigFile.is_open()) {
+            SigFile << TextFormat("%ls", EncodedHostname.c_str());
+            SigFile.close();
+        } 
+    } else {
+        wstring Data = LoadFile("GameData/Key/Key.sig");
+        if (!(Data[3] == EncodedHostname[3])) {
+            exit(0);
+        }
+    }
+#endif
+}
 
 void SaveGame() {
     wstring TFlags = L"";
@@ -269,8 +270,8 @@ void SaveGame() {
     Outfile << TFlags;
 
     wstring Position =
-        to_wstring(OmegaTechData.MainCamera.position.x) + L':' + to_wstring(OmegaTechData.MainCamera.position.y) +
-        L':' + to_wstring(OmegaTechData.MainCamera.position.z) + L':' + to_wstring(OmegaTechData.LevelIndex) + L':';
+        to_wstring(OTCoreData.RenderCamera.position.x) + L':' + to_wstring(OTCoreData.RenderCamera.position.y) +
+        L':' + to_wstring(OTCoreData.RenderCamera.position.z) + L':' + to_wstring(OTCoreData.LevelIndex) + L':';
 
     wofstream Outfile1;
     Outfile1.open("GameData/Saves/POS.sav");
@@ -297,7 +298,7 @@ void LoadSave() {
 
     wstring Position = LoadFile("GameData/Saves/POS.sav");
 
-    OmegaTechData.LevelIndex = int(ToFloat(WSplitValue(Position, 3)));
+    OTCoreData.LevelIndex = int(ToFloat(WSplitValue(Position, 3)));
 
     SetCameraFlag = true;
 

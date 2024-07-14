@@ -1,5 +1,7 @@
 #include "PPGIO.hpp"
 
+
+
 Vector3 Vector3Scale(Vector3 vector, float scale) {
     Vector3 result = {vector.x * scale, vector.y * scale, vector.z * scale};
     return result;

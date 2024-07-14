@@ -297,6 +297,14 @@ void LoadData(){
     HeightMapImagePreview = LoadTexture(".OTEData/Working/Models/HeightMapTexture.png");
 
     for (int i = 1; i <= ModelCount-1; i ++){
+
+        WDLModelData[i].Avaliable = false;
+
+        if (IsPathFile(TextFormat(".OTEData/Working/Models/Model%i.glb" , i))){
+            WDLModelData[i].Object = LoadModel(TextFormat(".OTEData/Working/Models/Model%i.glb" , i));
+            WDLModelData[i].Avaliable = true;
+        }
+
         if (IsPathFile(TextFormat(".OTEData/Working/Models/Model%i.obj" , i))){
             WDLModelData[i].Object = LoadModel(TextFormat(".OTEData/Working/Models/Model%i.obj" , i));
             WDLModelData[i].ModelTexture = LoadTexture(TextFormat(".OTEData/Working/Models/Model%iTexture.png" , i));
@@ -304,8 +312,8 @@ void LoadData(){
             WDLModelData[i].Object.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModelData[i].ModelTexture;
             WDLModelData[i].Avaliable = true;
         }
-        else {
-            WDLModelData[i].Avaliable = false;
+
+        if (!WDLModelData[i].Avaliable) {
             cout << "Model " << i << " Does not exists \n";
         }
     }
@@ -447,7 +455,7 @@ void RenderWDL(){
                 
 
                     if (IsMouseButtonDown(1)){
-                        EditorScale -= (GetMouseWheelMove() * .25);
+                        EditorScale -= (GetMouseWheelMove() * .01f);
 
                     }
 

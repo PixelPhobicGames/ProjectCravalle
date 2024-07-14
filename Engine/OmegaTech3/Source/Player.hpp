@@ -2,11 +2,9 @@
 
 class Player {
   public:
+    bool ObjectCollision = false;
     float Height = 10.0f;
     float Width = 2.0f;
-
-    int HeadBob = 0;
-    int HeadBobDirection = 1;
 
     int Health = 100;
 
@@ -17,4 +15,4 @@ class Player {
     BoundingBox PlayerBounds;
 };
 
-static Player OmegaPlayer;
+static Player OTPlayer;

@@ -6,7 +6,7 @@ ifeq ($(PLATFORM), Windows)
 
 else
     # Linux build settings
-	CFLAGS = -O2 --std=c++20 -g
+	CFLAGS = --std=c++20 
     LDFLAGS = -LSource/External -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -DLinux 
     COMP = g++
     BUILD_DIR = Build

@@ -1,8 +1,0 @@
-PlaceCamera 150.0 14.0 144.0
-PointCamera 275.0 40.0 342.0
-MoveCamera 137.0 18.0 334.0
-MoveCamera 259.0 38.0 343.0
-PlayFadeOut
-MoveCamera 137.0 18.0 334.0
-PlayFadeIn
-End

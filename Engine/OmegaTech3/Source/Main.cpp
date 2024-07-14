@@ -18,7 +18,7 @@ int main() {
 
     // PlayLogo(); // Turned off by default
 
-    OmegaTechInit();
+    OTInit();
     PlayHomeScreen();
 
     LoadWorld();
@@ -60,74 +60,53 @@ int main() {
                     UpdateCamera(&CineFlowData.CFCamera, CAMERA_FREE);
                     UpdateCineFlow();
                 } else {
-                    OmegaPlayer.OldX = OmegaTechData.MainCamera.position.x;
-                    OmegaPlayer.OldY = OmegaTechData.MainCamera.position.y;
-                    OmegaPlayer.OldZ = OmegaTechData.MainCamera.position.z;
+                    OTPlayer.OldX = OTCoreData.RenderCamera.position.x;
+                    OTPlayer.OldY = OTCoreData.RenderCamera.position.y;
+                    OTPlayer.OldZ = OTCoreData.RenderCamera.position.z;
 
-                    OmegaTechData.CameraSpeed = 1;
+                    OTCoreData.CameraSpeed = 1;
 
                     if (IsKeyDown(KEY_SPACE) || IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
-                        OmegaTechData.CameraSpeed = 2;
+                        OTCoreData.CameraSpeed = 2;
 
-                    if (!OmegaInputController.InteractDown) {
-                        for (int i = 0; i <= OmegaTechData.CameraSpeed; i++) {
-                            UpdateCamera(&OmegaTechData.MainCamera, CAMERA_FIRST_PERSON);
+                    if (!OTInputController.InteractDown) {
+                        for (int i = 0; i <= OTCoreData.CameraSpeed; i++) {
+                            UpdateCamera(&OTCoreData.RenderCamera, CAMERA_FIRST_PERSON);
                         }
                     }
 
-                    OmegaInputController.UpdateInputs();
+                    OTInputController.UpdateInputs();
                 }
             }
 
             UpdateFade();
             UpdateLightSources();
             DrawWorld();
-            BeginDrawing();
 
+            BeginDrawing();
             ClearBackground(BLACK);
 
-            BeginShaderMode(OmegaTechData.Bloom);
-            DrawTexturePro(Target.texture,
-                           (Rectangle){0, 0, Target.texture.width, -Target.texture.height},
+            DrawTexturePro(OTCoreData.RenderTarget.texture,
+                           (Rectangle){0, 0, OTCoreData.RenderTarget.texture.width, -OTCoreData.RenderTarget.texture.height},
                            (Rectangle){0, 0, float(GetScreenWidth()), float(GetScreenHeight())},
                            (Vector2){0, 0},
                            0.f,
                            FadeColor);
 
-            if (ScriptCollisionMessage) {
-                DisplayInteractText();
-            }
-
-            if (OmegaTechData.Ticker == 33 || OmegaInputController.InteractPressed || OmegaInputController.TextButton) {
-                ScriptCollisionMessage = false;
-            }
-
-            EndShaderMode();
-
             if (!UsingCineFlow) {
-                if (UIToggle)
+                if (UIToggle){
                     UpdateUI();
-                UpdateCustomUI(OmegaTechData.LevelIndex);
-            }
-
-            if (IsKeyPressed(KEY_TAB)) {
-                if (UIToggle) {
-                    UIToggle = false;
-                } else {
-                    UIToggle = true;
+                    UpdateCustomUI(OTCoreData.LevelIndex);
                 }
             }
 
-            if (FPSEnabled) {
-                DrawFPS(0, 0);
-            }
-
-            if (!UsingCineFlow)
-                OmegaTechTextSystem.Update();
-
-            if (ConsoleToggle) {
-                DrawConsole();
-            }
+            EndBlendMode();
+            
+            if (IsKeyPressed(KEY_TAB)) UIToggle = !UIToggle;
+            if (FPSEnabled) DrawFPS(0, 0);
+            if (!UsingCineFlow) OTTextSystem.Update();
+            if (ConsoleToggle) OTDebugConsole.Draw();
+            
 
             EndDrawing();
 
@@ -147,7 +126,7 @@ int main() {
             }
         }
 
-        SceneIDMirror = OmegaTechData.LevelIndex;
+        SceneIDMirror = OTCoreData.LevelIndex;
     }
 
     UnloadGame();

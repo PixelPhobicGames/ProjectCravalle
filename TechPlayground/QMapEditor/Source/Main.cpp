@@ -9,13 +9,13 @@ int main(){
     SetTargetFPS(60);
 
     Camera camera = { 0 };
-    camera.position = (Vector3){ 0.2f, 4.4f, 0.2f };    // Camera position
-    camera.target = (Vector3){ 0.185f, 0.4f, 0.0f };    // Camera looking at point
+    camera.position = (Vector3){ 0.0f, 9.0f, 0.0f };    // Camera position
+    camera.target = (Vector3){ 0.185f , 10.4f, 0.0f };    // Camera looking at point
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    camera.fovy = 45.0f;                                // Camera field-of-view Y
+    camera.fovy = 60.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;    
 
-    QMapSystem.LoadQMap("Working/World1.qmap");
+    QMapSystem.LoadQMap("Working/World.qmap");
 
     HideCursor();
     DisableCursor();
@@ -34,7 +34,7 @@ int main(){
                     UpdateCamera(&camera , CAMERA_FREE);
                 }
 
-                DrawGrid(100 , 1);
+                DrawGrid(1000 , 1);
 
                 QMapSystem.RenderQMap();
 

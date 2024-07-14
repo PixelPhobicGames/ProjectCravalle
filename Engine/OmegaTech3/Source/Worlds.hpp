@@ -1,39 +1,14 @@
 #include "Custom.hpp"
 
-void GenHeights(Image heightmap, Vector3 size) {
-    #define GRAY_VALUE(c) ((float)(c.r + c.g + c.b) / 3.0f)
 
-    int mapX = size.x;
-    int mapZ = size.z;
-
-    Color *pixels = LoadImageColors(heightmap);
-
-    float Scale = static_cast<float>(heightmap.width) / size.x;
-
-    for (int z = 0; z < mapZ && z < MaxMapSize; ++z) {
-        for (int x = 0; x < mapX && x < MaxMapSize; ++x) {
-            float Index = (x * Scale) + (z * Scale * heightmap.width);
-            // Ensure Index is within the bounds of pixels array
-            int pixelIndex = static_cast<int>(Index);
-            if (pixelIndex >= 0 && pixelIndex < heightmap.width * heightmap.height) {
-                TerrainHeightMap[z][x] = GRAY_VALUE(pixels[pixelIndex]) / (255 / size.y);
-            } else {
-                // Handle out-of-bounds case
-                // Maybe assign a default value or skip this pixel
-                TerrainHeightMap[z][x] = 0.0f; // Default value
-            }
-        }
-    }
-    // Do something with TerrainHeightMap
-}
+void GenHeights(Image heightmap, Vector3 size);
 
 static int ScriptTimer = 0;
 static float X, Y, Z, S, Rotation, W, H, L;
 bool NextCollision = false;
 bool NextAlwaysRender = false;
 
-void CacheWDL() { // Save Model Info for faster Access
-                  // Less String operations
+void LoadWDL() {
     wstring WData = WorldData;
 
     OtherWDLData = L"";
@@ -134,13 +109,13 @@ void CWDLProcess() {
         L = CachedCollision[i].L;
 
         if (CheckCollisionBoxSphere((BoundingBox){(Vector3){X, Y, Z}, (Vector3){W, H, L}},
-                                    {OmegaTechData.MainCamera.position.x + OmegaPlayer.Width / 2,
-                                     OmegaTechData.MainCamera.position.y - OmegaPlayer.Height / 2,
-                                     OmegaTechData.MainCamera.position.z - OmegaPlayer.Width / 2},
+                                    {OTCoreData.RenderCamera.position.x + OTPlayer.Width / 2,
+                                     OTCoreData.RenderCamera.position.y - OTPlayer.Height / 2,
+                                     OTCoreData.RenderCamera.position.z - OTPlayer.Width / 2},
                                     1.0)) {
-            ObjectCollision = true;
-            if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
-                PlaySound(OmegaTechSoundData.CollisionSound);
+            OTPlayer.ObjectCollision = true;
+            if (!IsSoundPlaying(OTSoundData.CollisionSound)) {
+                PlaySound(OTSoundData.CollisionSound);
             }
         }
     }
@@ -156,11 +131,11 @@ void CWDLProcess() {
 
         bool LOD = true;
 
-        if (OmegaTechData.MainCamera.position.z - OmegaTechData.LODSwapRadius < Z &&
-                OmegaTechData.MainCamera.position.z + OmegaTechData.LODSwapRadius > Z ||
+        if (OTCoreData.RenderCamera.position.z - OTCoreData.LODSwapRadius < Z &&
+                OTCoreData.RenderCamera.position.z + OTCoreData.LODSwapRadius > Z ||
             CachedModels[i].ModelId == -1) {
-            if (OmegaTechData.MainCamera.position.x - OmegaTechData.LODSwapRadius < X &&
-                    OmegaTechData.MainCamera.position.x + OmegaTechData.LODSwapRadius > X ||
+            if (OTCoreData.RenderCamera.position.x - OTCoreData.LODSwapRadius < X &&
+                    OTCoreData.RenderCamera.position.x + OTCoreData.LODSwapRadius > X ||
                 CachedModels[i].ModelId == -1) {
                 LOD = false;
             }
@@ -168,20 +143,20 @@ void CWDLProcess() {
 
         if (CachedModels[i].ModelId >= 1 && CachedModels[i].ModelId <= 20){
             if (LOD && LowDetail[i]){
-                DrawModelEx(WLowDetailModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+                DrawModelEx(LowDetalMapModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
             }
             else {
-                DrawModelEx(WDLModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+                DrawModelEx(MapModels[CachedModels[i].ModelId].ModelData, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
             }
         }
         else {
             switch (CachedModels[i].ModelId) {
                 case -2:
-                    if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
+                    if (CheckCollisionBoxes(OTPlayer.PlayerBounds,
                                             (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
-                        ObjectCollision = true;
-                        if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
-                            PlaySound(OmegaTechSoundData.CollisionSound);
+                        OTPlayer.ObjectCollision = true;
+                        if (!IsSoundPlaying(OTSoundData.CollisionSound)) {
+                            PlaySound(OTSoundData.CollisionSound);
                         }
                     }
                     break;
@@ -192,14 +167,14 @@ void CWDLProcess() {
         }
 
         if (CachedModels[i].ModelId >= 200) {
-            if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
+            if (CheckCollisionBoxes(OTPlayer.PlayerBounds,
                                     (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
-                if (OmegaInputController.InteractPressed) {
-                    ObjectCollision = true;
+                if (OTInputController.InteractPressed) {
+                    OTPlayer.ObjectCollision = true;
                     if (ScriptTimer == 0) {
                         ParasiteScriptInit();
                         LoadScript(TextFormat("GameData/Worlds/World%i/Scripts/Script%i.ps",
-                                              OmegaTechData.LevelIndex,
+                                              OTCoreData.LevelIndex,
                                               CachedModels[i].ModelId - 200));
 
                         ParasiteRunning = true;
@@ -211,17 +186,13 @@ void CWDLProcess() {
 
                         ScriptTimer = 180;
                     }
-                } else {
-                    if (OmegaTechTextSystem.LanguageType == 0) {
-                        ScriptCollisionMessage = true;
-                    }
                 }
             }
         }
         if (CachedModels[i].Collision) {
             BoundingBox ModelBox = CalculateBoundingBox(X, Y, Z, S * 2);
-            if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds, ModelBox)) {
-                ObjectCollision = true;
+            if (CheckCollisionBoxes(OTPlayer.PlayerBounds, ModelBox)) {
+                OTPlayer.ObjectCollision = true;
             }
         }
     }
@@ -231,14 +202,8 @@ void WDLProcess() {
     int Size = 0;
 
     FinalWDL = L"";
-
-    if (OmegaTechData.UseCachedRenderer) {
-        FinalWDL = OtherWDLData + ExtraWDLInstructions;
-        Size = GetWDLSize(OtherWDLData, ExtraWDLInstructions);
-    } else {
-        FinalWDL = WorldData + ExtraWDLInstructions;
-        Size = GetWDLSize(WorldData, ExtraWDLInstructions);
-    }
+    FinalWDL = OtherWDLData + ExtraWDLInstructions;
+    Size = GetWDLSize(OtherWDLData, ExtraWDLInstructions);
 
     bool Render = false;
     bool FoundPlatform = false;
@@ -266,35 +231,35 @@ void WDLProcess() {
 
             Rotation = ToFloat(WSplitValue(FinalWDL, i + 5));
 
-            if (OmegaTechData.MainCamera.position.z - OmegaTechData.PopInRadius < Z &&
-                OmegaTechData.MainCamera.position.z + OmegaTechData.PopInRadius > Z) {
-                if (OmegaTechData.MainCamera.position.x - OmegaTechData.PopInRadius < X &&
-                    OmegaTechData.MainCamera.position.x + OmegaTechData.PopInRadius > X) {
+            if (OTCoreData.RenderCamera.position.z - OTCoreData.PopInRadius < Z &&
+                OTCoreData.RenderCamera.position.z + OTCoreData.PopInRadius > Z) {
+                if (OTCoreData.RenderCamera.position.x - OTCoreData.PopInRadius < X &&
+                    OTCoreData.RenderCamera.position.x + OTCoreData.PopInRadius > X) {
                     Render = true;
 
                     if (Instruction == L"NE1") {
-                        if (!IsMusicStreamPlaying(OmegaTechSoundData.NESound1))
-                            PlayMusicStream(OmegaTechSoundData.NESound1);
+                        if (!IsMusicStreamPlaying(OTSoundData.NESound1))
+                            PlayMusicStream(OTSoundData.NESound1);
                     }
                     if (Instruction == L"NE2") {
-                        if (!IsMusicStreamPlaying(OmegaTechSoundData.NESound2))
-                            PlayMusicStream(OmegaTechSoundData.NESound2);
+                        if (!IsMusicStreamPlaying(OTSoundData.NESound2))
+                            PlayMusicStream(OTSoundData.NESound2);
                     }
                     if (Instruction == L"NE3") {
-                        if (!IsMusicStreamPlaying(OmegaTechSoundData.NESound3))
-                            PlayMusicStream(OmegaTechSoundData.NESound3);
+                        if (!IsMusicStreamPlaying(OTSoundData.NESound3))
+                            PlayMusicStream(OTSoundData.NESound3);
                     }
                 }
             }
         } else {
             if (Instruction == L"NE1") {
-                StopMusicStream(OmegaTechSoundData.NESound1);
+                StopMusicStream(OTSoundData.NESound1);
             }
             if (Instruction == L"NE2") {
-                StopMusicStream(OmegaTechSoundData.NESound2);
+                StopMusicStream(OTSoundData.NESound2);
             }
             if (Instruction == L"NE3") {
-                StopMusicStream(OmegaTechSoundData.NESound3);
+                StopMusicStream(OTSoundData.NESound3);
             }
         }
 
@@ -303,61 +268,62 @@ void WDLProcess() {
 
             if (Instruction == L"NE1") {
                 AudioValue = FlipNumber(
-                    GetDistance(X, Z, OmegaTechData.MainCamera.position.x, OmegaTechData.MainCamera.position.z));
+                    GetDistance(X, Z, OTCoreData.RenderCamera.position.x, OTCoreData.RenderCamera.position.z));
                 if (AudioValue > 0 && AudioValue < 100)
-                    SetMusicVolume(OmegaTechSoundData.NESound1, float(AudioValue) / 100.0f);
+                    SetMusicVolume(OTSoundData.NESound1, float(AudioValue) / 100.0f);
                 else {
-                    SetMusicVolume(OmegaTechSoundData.NESound1, 0);
+                    SetMusicVolume(OTSoundData.NESound1, 0);
                 }
             }
             if (Instruction == L"NE2") {
                 AudioValue = FlipNumber(
-                    GetDistance(X, Z, OmegaTechData.MainCamera.position.x, OmegaTechData.MainCamera.position.z));
+                    GetDistance(X, Z, OTCoreData.RenderCamera.position.x, OTCoreData.RenderCamera.position.z));
                 if (AudioValue > 0 && AudioValue < 100)
-                    SetMusicVolume(OmegaTechSoundData.NESound2, float(AudioValue) / 100.0f);
+                    SetMusicVolume(OTSoundData.NESound2, float(AudioValue) / 100.0f);
                 else {
-                    SetMusicVolume(OmegaTechSoundData.NESound2, 0);
+                    SetMusicVolume(OTSoundData.NESound2, 0);
                 }
             }
             if (Instruction == L"NE3") {
                 AudioValue = FlipNumber(
-                    GetDistance(X, Z, OmegaTechData.MainCamera.position.x, OmegaTechData.MainCamera.position.z));
+                    GetDistance(X, Z, OTCoreData.RenderCamera.position.x, OTCoreData.RenderCamera.position.z));
                 if (AudioValue > 0 && AudioValue < 100)
-                    SetMusicVolume(OmegaTechSoundData.NESound3, float(AudioValue) / 100.0f);
+                    SetMusicVolume(OTSoundData.NESound3, float(AudioValue) / 100.0f);
                 else {
-                    SetMusicVolume(OmegaTechSoundData.NESound3, 0);
+                    SetMusicVolume(OTSoundData.NESound3, 0);
                 }
             }
 
             if (Instruction == L"Collision") {
-                if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
+                if (CheckCollisionBoxes(OTPlayer.PlayerBounds,
                                         (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
-                    ObjectCollision = true;
+                    OTPlayer.ObjectCollision = true;
                 }
 
                 if (Debug) {
-                    if (ObjectCollision) {
+                    if (OTPlayer.ObjectCollision) {
                         DrawCubeWires({X, Y, Z}, S, S, S, GREEN);
                     } else {
                         DrawCubeWires({X, Y, Z}, S, S, S, RED);
                     }
                 }
-                if (ObjectCollision) {
-                    if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
-                        PlaySound(OmegaTechSoundData.CollisionSound);
+                
+                if (OTPlayer.ObjectCollision) {
+                    if (!IsSoundPlaying(OTSoundData.CollisionSound)) {
+                        PlaySound(OTSoundData.CollisionSound);
                     }
                 }
             }
 
             if (WReadValue(Instruction, 0, 5) == L"Script") {
-                if (CheckCollisionBoxes(OmegaPlayer.PlayerBounds,
+                if (CheckCollisionBoxes(OTPlayer.PlayerBounds,
                                         (BoundingBox){(Vector3){X, Y, Z}, (Vector3){X + S, Y + S, Z + S}})) {
-                    if (OmegaInputController.InteractPressed) {
-                        ObjectCollision = true;
+                    if (OTInputController.InteractPressed) {
+                        OTPlayer.ObjectCollision = true;
                         if (ScriptTimer == 0) {
                             ParasiteScriptInit();
                             LoadScript(TextFormat("GameData/Worlds/World%i/Scripts/Script%i.ps",
-                                                  OmegaTechData.LevelIndex,
+                                                  OTCoreData.LevelIndex,
                                                   int(ToFloat(WReadValue(Instruction, 6, Instruction.size() - 1)))));
 
                             for (int x = 0; x <= ParasiteScriptCoreData.ProgramSize; x++) {
@@ -367,16 +333,11 @@ void WDLProcess() {
 
                             ScriptTimer = 180;
                         }
-                    } else {
-                        if (OmegaTechTextSystem.LanguageType == 0) {
-                            ScriptCollisionMessage = true;
-                        } else {
-                        }
                     }
                 }
 
                 if (Debug) {
-                    if (ObjectCollision) {
+                    if (OTPlayer.ObjectCollision) {
                         DrawCubeWires({X, Y, Z}, S, S, S, GREEN);
                     } else {
                         DrawCubeWires({X, Y, Z}, S, S, S, YELLOW);
@@ -391,9 +352,9 @@ void WDLProcess() {
             L = ToFloat(WSplitValue(FinalWDL, i + 8));
 
             if (CheckCollisionBoxSphere((BoundingBox){(Vector3){X, Y, Z}, (Vector3){W, H, L}},
-                                        {OmegaTechData.MainCamera.position.x + OmegaPlayer.Width / 2,
-                                         OmegaTechData.MainCamera.position.y - 1,
-                                         OmegaTechData.MainCamera.position.z - OmegaPlayer.Width / 2},
+                                        {OTCoreData.RenderCamera.position.x + OTPlayer.Width / 2,
+                                         OTCoreData.RenderCamera.position.y - 1,
+                                         OTCoreData.RenderCamera.position.z - OTPlayer.Width / 2},
                                         1.0)) {
                 PlatformHeight = H;
                 FoundPlatform = true;
@@ -414,23 +375,23 @@ void WDLProcess() {
                 L = ToFloat(WSplitValue(FinalWDL, i + 8));
 
                 if (CheckCollisionBoxSphere((BoundingBox){(Vector3){X, Y, Z}, (Vector3){W, H, L}},
-                                            {OmegaTechData.MainCamera.position.x + OmegaPlayer.Width / 2,
-                                             OmegaTechData.MainCamera.position.y - OmegaPlayer.Height / 2,
-                                             OmegaTechData.MainCamera.position.z - OmegaPlayer.Width / 2},
+                                            {OTCoreData.RenderCamera.position.x + OTPlayer.Width / 2,
+                                             OTCoreData.RenderCamera.position.y - OTPlayer.Height / 2,
+                                             OTCoreData.RenderCamera.position.z - OTPlayer.Width / 2},
                                             1.0))
-                    ObjectCollision = true;
+                    OTPlayer.ObjectCollision = true;
 
                 if (Debug) {
-                    if (ObjectCollision) {
+                    if (OTPlayer.ObjectCollision) {
                         DrawBoundingBox((BoundingBox){(Vector3){X, Y, Z}, (Vector3){W, H, L}}, GREEN);
                     } else {
                         DrawBoundingBox((BoundingBox){(Vector3){X, Y, Z}, (Vector3){W, H, L}}, PURPLE);
                     }
                 }
 
-                if (ObjectCollision) {
-                    if (!IsSoundPlaying(OmegaTechSoundData.CollisionSound)) {
-                        PlaySound(OmegaTechSoundData.CollisionSound);
+                if (OTPlayer.ObjectCollision) {
+                    if (!IsSoundPlaying(OTSoundData.CollisionSound)) {
+                        PlaySound(OTSoundData.CollisionSound);
                     }
                 }
             }
@@ -444,14 +405,12 @@ void WDLProcess() {
 
         Render = false;
     }
-
-
 }
 
 void UpdateNoiseEmitters() {
-    UpdateMusicStream(OmegaTechSoundData.NESound1);
-    UpdateMusicStream(OmegaTechSoundData.NESound2);
-    UpdateMusicStream(OmegaTechSoundData.NESound3);
+    UpdateMusicStream(OTSoundData.NESound1);
+    UpdateMusicStream(OTSoundData.NESound2);
+    UpdateMusicStream(OTSoundData.NESound3);
 }
 
 
@@ -478,8 +437,8 @@ void LoadWorld() {
 
     PlayFadeIn();
     ClearLights();
-    SceneIDMirror = OmegaTechData.LevelIndex;
-    GrassScan = true;
+
+    SceneIDMirror = OTCoreData.LevelIndex;
 
     #ifdef UseGBEngine
         LoadGBEngine();
@@ -503,7 +462,7 @@ void LoadWorld() {
     LoadAmbientLight();
     LoadScripts();
 
-    LoadCustom(OmegaTechData.LevelIndex);
+    LoadCustom(OTCoreData.LevelIndex);
 
 }
 
@@ -521,38 +480,38 @@ void LoadGBEngine() {
 
 
 void LoadNoiseEmitters() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE1.mp3", OmegaTechData.LevelIndex))) {
-        if (IsMusicStreamPlaying(OmegaTechSoundData.NESound1))StopMusicStream(OmegaTechSoundData.NESound1);
-        OmegaTechSoundData.NESound1 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE1.mp3", OmegaTechData.LevelIndex));
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE1.mp3", OTCoreData.LevelIndex))) {
+        if (IsMusicStreamPlaying(OTSoundData.NESound1))StopMusicStream(OTSoundData.NESound1);
+        OTSoundData.NESound1 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE1.mp3", OTCoreData.LevelIndex));
     } else {
-        if (IsMusicReady(OmegaTechSoundData.NESound1))UnloadMusicStream(OmegaTechSoundData.NESound1);
+        if (IsMusicReady(OTSoundData.NESound1))UnloadMusicStream(OTSoundData.NESound1);
     }
 
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OmegaTechData.LevelIndex))) {
-        if (IsMusicStreamPlaying(OmegaTechSoundData.NESound2))StopMusicStream(OmegaTechSoundData.NESound2);
-        OmegaTechSoundData.NESound2 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OmegaTechData.LevelIndex));
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OTCoreData.LevelIndex))) {
+        if (IsMusicStreamPlaying(OTSoundData.NESound2))StopMusicStream(OTSoundData.NESound2);
+        OTSoundData.NESound2 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OTCoreData.LevelIndex));
     } else {
-        if (IsMusicReady(OmegaTechSoundData.NESound2))UnloadMusicStream(OmegaTechSoundData.NESound2);
+        if (IsMusicReady(OTSoundData.NESound2))UnloadMusicStream(OTSoundData.NESound2);
     }
 
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OmegaTechData.LevelIndex))) {
-        if (IsMusicStreamPlaying(OmegaTechSoundData.NESound2))StopMusicStream(OmegaTechSoundData.NESound2);
-        OmegaTechSoundData.NESound2 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OmegaTechData.LevelIndex));
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OTCoreData.LevelIndex))) {
+        if (IsMusicStreamPlaying(OTSoundData.NESound2))StopMusicStream(OTSoundData.NESound2);
+        OTSoundData.NESound2 = LoadMusicStream(TextFormat("GameData/Worlds/World%i/NoiseEmitter/NE2.mp3", OTCoreData.LevelIndex));
     } else {
-        if (IsMusicReady(OmegaTechSoundData.NESound2))UnloadMusicStream(OmegaTechSoundData.NESound2);
+        if (IsMusicReady(OTSoundData.NESound2))UnloadMusicStream(OTSoundData.NESound2);
     }
 }
 
 void LoadAmbientLight() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OmegaTechData.LevelIndex))) {
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OTCoreData.LevelIndex))) {
         float Red = float((int(PullConfigValue(
-            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OmegaTechData.LevelIndex), 0)) / 255));
+            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OTCoreData.LevelIndex), 0)) / 255));
         float Green = float((int(PullConfigValue(
-            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OmegaTechData.LevelIndex), 1)) / 255));
+            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OTCoreData.LevelIndex), 1)) / 255));
         float Blue = float((int(PullConfigValue(
-            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OmegaTechData.LevelIndex), 2)) / 255));
+            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OTCoreData.LevelIndex), 2)) / 255));
         float Alpha = float((int(PullConfigValue(
-            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OmegaTechData.LevelIndex), 3)) / 255));
+            TextFormat("GameData/Worlds/World%i/Config/AmbientLight.conf", OTCoreData.LevelIndex), 3)) / 255));
 
         AmbientLightValues[0] = Red;
         AmbientLightValues[1] = Green;
@@ -562,29 +521,29 @@ void LoadAmbientLight() {
 }
 
 void LoadSkybox() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OmegaTechData.LevelIndex))) {
-        OTSkybox.LoadSkybox(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OmegaTechData.LevelIndex));
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OTCoreData.LevelIndex))) {
+        OTSkybox.LoadSkybox(TextFormat("GameData/Worlds/World%i/Models/Skybox.png", OTCoreData.LevelIndex));
     }
 }
 
 void LoadHeightMap() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OmegaTechData.LevelIndex))) {
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OTCoreData.LevelIndex))) {
         TerrainData.HeightMapW =
-            PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OmegaTechData.LevelIndex), 0);
+            PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OTCoreData.LevelIndex), 0);
         TerrainData.HeightMapH =
-            PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OmegaTechData.LevelIndex), 1);
+            PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/HeightMap.conf", OTCoreData.LevelIndex), 1);
 
         TerrainData.HeightMapTexture =
-            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/HeightMapTexture.png", OmegaTechData.LevelIndex));
+            LoadTexture(TextFormat("GameData/Worlds/World%i/Models/HeightMapTexture.png", OTCoreData.LevelIndex));
         Image HeightMapImage =
-            LoadImage(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OmegaTechData.LevelIndex));
+            LoadImage(TextFormat("GameData/Worlds/World%i/Models/HeightMap.png", OTCoreData.LevelIndex));
         Texture2D Texture = LoadTextureFromImage(HeightMapImage);
 
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OmegaTechData.LevelIndex))) {
+        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OTCoreData.LevelIndex))) {
             TerrainData.HeightMap =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OmegaTechData.LevelIndex));
+                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Terrain.obj", OTCoreData.LevelIndex));
             TerrainData.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = TerrainData.HeightMapTexture;
-            TerrainData.HeightMap.materials[0].shader = OmegaTechData.Lights;
+            TerrainData.HeightMap.materials[0].shader = OTCoreData.Lights;
         } else {
             Mesh Mesh1 = GenMeshHeightmap(HeightMapImage,
                                           (Vector3){TerrainData.HeightMapW, TerrainData.HeightMapH, TerrainData.HeightMapW});
@@ -592,7 +551,7 @@ void LoadHeightMap() {
             TerrainData.HeightMap = LoadModelFromMesh(Mesh1);
             TerrainData.HeightMap.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = TerrainData.HeightMapTexture;
             TerrainData.HeightMap.meshes[0] = Mesh1;
-            TerrainData.HeightMap.materials[0].shader = OmegaTechData.Lights;
+            TerrainData.HeightMap.materials[0].shader = OTCoreData.Lights;
         }
 
         GenHeights(HeightMapImage, {(Vector3){TerrainData.HeightMapW, TerrainData.HeightMapH, TerrainData.HeightMapW}});
@@ -601,41 +560,56 @@ void LoadHeightMap() {
 
 void LoadModels() {
     for (int i = 1; i <= ModelCount - 1; i++) {
-        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OmegaTechData.LevelIndex, i))) {
-            WDLModels[i].ModelData =
-                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OmegaTechData.LevelIndex, i));
-            WDLModels[i].ModelTexture =
-                LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OmegaTechData.LevelIndex, i));
-            SetTextureFilter(WDLModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
-            WDLModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModels[i].ModelTexture;
-            WDLModels[i].ModelData.materials[0].shader = OmegaTechData.Lights;
+        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OTCoreData.LevelIndex, i))) {
+            MapModels[i].ModelData =
+                LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%i.obj", OTCoreData.LevelIndex, i));
+            MapModels[i].ModelTexture =
+                LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OTCoreData.LevelIndex, i));
+            SetTextureFilter(MapModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
+            MapModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = MapModels[i].ModelTexture;
+            MapModels[i].ModelData.materials[0].shader = OTCoreData.Lights;
 
-            if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OmegaTechData.LevelIndex, i))) {
-                WLowDetailModels[i].ModelData =
-                    LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OmegaTechData.LevelIndex, i));
-                WLowDetailModels[i].ModelTexture =
-                    LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OmegaTechData.LevelIndex, i));
-                SetTextureFilter(WLowDetailModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
-                WLowDetailModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WLowDetailModels[i].ModelTexture;
-                WLowDetailModels[i].ModelData.materials[0].shader = OmegaTechData.Lights;
+            if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OTCoreData.LevelIndex, i))) {
+                LowDetalMapModels[i].ModelData =
+                    LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.obj", OTCoreData.LevelIndex, i));
+                LowDetalMapModels[i].ModelTexture =
+                    LoadTexture(TextFormat("GameData/Worlds/World%i/Models/Model%iTexture.png", OTCoreData.LevelIndex, i));
+                SetTextureFilter(LowDetalMapModels[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
+                LowDetalMapModels[i].ModelData.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LowDetalMapModels[i].ModelTexture;
+                LowDetalMapModels[i].ModelData.materials[0].shader = OTCoreData.Lights;
                 LowDetail[i] = true;
             } else {
                 LowDetail[i] = false;
             }
         }
+
+        if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%i.glb", OTCoreData.LevelIndex, i))) { // glb support
+            MapModels[i].ModelData = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%i.glb", OTCoreData.LevelIndex, i));
+
+            for (int x = 0 ; x <= MapModels[i].ModelData.materialCount - 1; x ++)MapModels[i].ModelData.materials[x].shader = OTCoreData.Lights;
+
+            if (IsPathFile(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.glb", OTCoreData.LevelIndex, i))) {
+                LowDetalMapModels[i].ModelData = LoadModel(TextFormat("GameData/Worlds/World%i/Models/Model%iLOD.glb", OTCoreData.LevelIndex, i));
+                LowDetalMapModels[i].ModelData.materials[0].shader = OTCoreData.Lights;
+                LowDetail[i] = true;
+            } else {
+                LowDetail[i] = false;
+            }
+        }
+
     }
 }
 
 void LoadQMap() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/World.qmap", OmegaTechData.LevelIndex))) {
-        QMapSystem.LoadQMap(TextFormat("GameData/Worlds/World%i/World.qmap", OmegaTechData.LevelIndex));
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/World.qmap", OTCoreData.LevelIndex))) {
+        QMapSystem.LoadQMap(TextFormat("GameData/Worlds/World%i/World.qmap", OTCoreData.LevelIndex));
 
         QMapSystem.EmptyTexture = LoadTextureFromImage(GenImagePerlinNoise(100, 100, 0, 0, 10.0f));
 
         for (int i = 0; i <= MaxQMapTextures; i++) {
-            if (IsPathFile(TextFormat("GameData/Worlds/World%i/QMap/Q%i.png", OmegaTechData.LevelIndex, i))) {
+            if (IsPathFile(TextFormat("GameData/Worlds/World%i/QMap/Q%i.png", OTCoreData.LevelIndex, i))) {
                 SetTextureWrap(QMapSystem.MapTextures[i], TEXTURE_WRAP_MIRROR_REPEAT);
-                QMapSystem.MapTextures[i] = LoadTexture(TextFormat("GameData/Worlds/World%i/QMap/Q%i.png", OmegaTechData.LevelIndex, i));
+                QMapSystem.MapTextures[i] = LoadTexture(TextFormat("GameData/Worlds/World%i/QMap/Q%i.png", OTCoreData.LevelIndex, i));
             }
         }
     } else {
@@ -644,21 +618,21 @@ void LoadQMap() {
 }
 
 void LoadSunLight() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex))) {
-        SunLightValues.r = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 0);
-        SunLightValues.g = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 1);
-        SunLightValues.b = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 2);
-        SunLightValues.a = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OmegaTechData.LevelIndex), 3);
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OTCoreData.LevelIndex))) {
+        SunLightValues.r = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OTCoreData.LevelIndex), 0);
+        SunLightValues.g = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OTCoreData.LevelIndex), 1);
+        SunLightValues.b = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OTCoreData.LevelIndex), 2);
+        SunLightValues.a = PullConfigValue(TextFormat("GameData/Worlds/World%i/Config/SunLight.conf", OTCoreData.LevelIndex), 3);
     }
 }
 
 void LoadWorldData() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/World.wdl", OmegaTechData.LevelIndex))) {
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/World.wdl", OTCoreData.LevelIndex))) {
         if (GameDataEncoded) {
-            WorldData = Encode(LoadFile(TextFormat("GameData/Worlds/World%i/World.wdl", OmegaTechData.LevelIndex)), MainKey);
+            WorldData = Encode(LoadFile(TextFormat("GameData/Worlds/World%i/World.wdl", OTCoreData.LevelIndex)), MainKey);
         } else {
             WorldData = L"";
-            WorldData = LoadFile(TextFormat("GameData/Worlds/World%i/World.wdl", OmegaTechData.LevelIndex));
+            WorldData = LoadFile(TextFormat("GameData/Worlds/World%i/World.wdl", OTCoreData.LevelIndex));
 
 #ifdef USESIG
 
@@ -671,29 +645,29 @@ void LoadWorldData() {
 #endif
 
             OtherWDLData = L"";
-            CacheWDL();
+            LoadWDL();
         }
     }
 }
 
 void LoadBackgroundMusic() {
-    if (OmegaTechSoundData.MusicFound)
-        StopMusicStream(OmegaTechSoundData.BackgroundMusic);
+    if (OTSoundData.MusicFound)
+        StopMusicStream(OTSoundData.BackgroundMusic);
 
-    OmegaTechSoundData.MusicFound = false;
+    OTSoundData.MusicFound = false;
 
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OmegaTechData.LevelIndex))) {
-        OmegaTechSoundData.BackgroundMusic =
-            LoadMusicStream(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OmegaTechData.LevelIndex));
-        OmegaTechSoundData.MusicFound = true;
-        PlayMusicStream(OmegaTechSoundData.BackgroundMusic);
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OTCoreData.LevelIndex))) {
+        OTSoundData.BackgroundMusic =
+            LoadMusicStream(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OTCoreData.LevelIndex));
+        OTSoundData.MusicFound = true;
+        PlayMusicStream(OTSoundData.BackgroundMusic);
     }
 }
 
 void LoadScripts() {
-    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Scripts/Launch.ps", OmegaTechData.LevelIndex))) {
+    if (IsPathFile(TextFormat("GameData/Worlds/World%i/Scripts/Launch.ps", OTCoreData.LevelIndex))) {
         ParasiteScriptInit();
-        LoadScript(TextFormat("GameData/Worlds/World%i/Scripts/Launch.ps", OmegaTechData.LevelIndex));
+        LoadScript(TextFormat("GameData/Worlds/World%i/Scripts/Launch.ps", OTCoreData.LevelIndex));
 
         ParasiteRunning = true;
 
@@ -757,21 +731,21 @@ void UnloadTerrain() {
 
 void UnloadModels() {
     for (int i = 1; i <= ModelCount - 1; i++) {
-        if (IsModelLoaded(&WDLModels[i].ModelData)) {
-            UnloadModel(WDLModels[i].ModelData);
+        if (IsModelLoaded(&MapModels[i].ModelData)) {
+            UnloadModel(MapModels[i].ModelData);
         }
 
-        if (WDLModels[i].ModelTexture.width != NULL) {
-            UnloadTexture(WDLModels[i].ModelTexture);
+        if (MapModels[i].ModelTexture.width != NULL) {
+            UnloadTexture(MapModels[i].ModelTexture);
         }
 
         if (LowDetail[i]) {
-            if (IsModelLoaded(&WLowDetailModels[i].ModelData)) {
-                UnloadModel(WLowDetailModels[i].ModelData);
+            if (IsModelLoaded(&LowDetalMapModels[i].ModelData)) {
+                UnloadModel(LowDetalMapModels[i].ModelData);
             }
 
-            if (WLowDetailModels[i].ModelTexture.width != NULL) {
-                UnloadTexture(WLowDetailModels[i].ModelTexture);
+            if (LowDetalMapModels[i].ModelTexture.width != NULL) {
+                UnloadTexture(LowDetalMapModels[i].ModelTexture);
             }
         }
     }
@@ -800,32 +774,55 @@ void UnloadQMapTextures() {
 void UnloadShadersAndRenderTextures() {
     UnloadShader(OTSkybox.CubemapShader);
     UnloadRenderTexture(ParasiteTarget);
-    UnloadRenderTexture(Target);
+    UnloadRenderTexture(OTCoreData.RenderTarget);
 }
 
 void UnloadFonts() {
-    UnloadFont(OmegaTechTextSystem.BarFont);
-    UnloadFont(OmegaTechTextSystem.RussianBarFont);
-    UnloadFont(OmegaTechTextSystem.LatinBarFont);
-    UnloadFont(OmegaTechTextSystem.JapaneseBarFont);
+    UnloadFont(OTTextSystem.BarFont);
+    UnloadFont(OTTextSystem.RussianBarFont);
+    UnloadFont(OTTextSystem.LatinBarFont);
+    UnloadFont(OTTextSystem.JapaneseBarFont);
 }
 
 void UnloadSounds() {
-    UnloadTexture(OmegaTechTextSystem.Bar);
-    UnloadTexture(OmegaTechData.Cursor);
-
-    UnloadSound(OmegaTechSoundData.CollisionSound);
-    UnloadSound(OmegaTechSoundData.WalkingSound);
-    UnloadSound(OmegaTechSoundData.ChasingSound);
-    UnloadSound(OmegaTechSoundData.UIClick);
-    UnloadSound(OmegaTechSoundData.Death);
-    UnloadSound(OmegaTechTextSystem.TextNoise);
+    UnloadTexture(OTTextSystem.Bar);
+    UnloadSound(OTSoundData.CollisionSound);
+    UnloadSound(OTSoundData.WalkingSound);
+    UnloadSound(OTSoundData.ChasingSound);
+    UnloadSound(OTSoundData.UIClick);
+    UnloadSound(OTSoundData.Death);
+    UnloadSound(OTTextSystem.TextNoise);
 }
 
 void DrawTerrainMap() {
     for (int z = 0; z < MaxMapSize; z++) {
         for (int x = 0; x < MaxMapSize; x++) {
             DrawCube({float(x), TerrainHeightMap[z][x], float(z)}, 0.5, 0.5, 0.5, RED);
+        }
+    }
+}
+
+void GenHeights(Image heightmap, Vector3 size) {
+    #define GRAY_VALUE(c) ((float)(c.r + c.g + c.b) / 3.0f)
+
+    int mapX = size.x;
+    int mapZ = size.z;
+
+    Color *pixels = LoadImageColors(heightmap);
+
+    float Scale = static_cast<float>(heightmap.width) / size.x;
+
+    for (int z = 0; z < mapZ && z < MaxMapSize; ++z) {
+        for (int x = 0; x < mapX && x < MaxMapSize; ++x) {
+            float Index = (x * Scale) + (z * Scale * heightmap.width);
+
+            int pixelIndex = static_cast<int>(Index);
+            if (pixelIndex >= 0 && pixelIndex < heightmap.width * heightmap.height) {
+                TerrainHeightMap[z][x] = GRAY_VALUE(pixels[pixelIndex]) / (255 / size.y);
+            } else {
+
+                TerrainHeightMap[z][x] = 0.0f;
+            }
         }
     }
 }
