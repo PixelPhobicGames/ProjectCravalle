@@ -15,7 +15,7 @@
 int main(){
 	InitWindow(1104, 720, "Steel Editor");
 	SetTargetFPS(60);
-
+	
 	InitMiniWDL();
 
 	GuiLoadStyle();
@@ -218,7 +218,11 @@ int main(){
 						MLTexturePath = Path;
 					}
 					if (SearchString(Path , "obj")){
-						DrawText(filePaths[i] , 248, 188 , 8, RED);
+						DrawText(filePaths[i] , 248, 188 , 8, YELLOW);
+						MLModelPath = Path;
+					}
+					if (SearchString(Path , "gltf") || SearchString(Path , "glb")){
+						DrawText(filePaths[i] , 248, 188 , 8, PURPLE);
 						MLModelPath = Path;
 					}
 				}

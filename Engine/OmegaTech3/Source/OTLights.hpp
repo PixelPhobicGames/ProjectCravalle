@@ -39,10 +39,15 @@ void ClearLights() {
     OTCoreData.GameLights[MAX_LIGHTS] = {0};
 }
 
-void PutLight(Vector3 Position) {
-    OTCoreData.GameLights[LightCounter] =
-        CreateLight(LIGHT_DIRECTIONAL, Position, {0, 0, 0}, WHITE, OTCoreData.Lights);
-    LightCounter++;
+void PutLight(Vector3 Position, Vector3 Target, Color LColor) {
+    OTCoreData.GameLights[LightCounter] = CreateLight(LIGHT_POINT, Position ,  Target , LColor , OTCoreData.Lights);
+
+    if (LightCounter != MAX_LIGHTS){
+        LightCounter ++;
+    }
+    else { // Cycle Back if no more Light Room. 
+        LightCounter = 1;
+    }
 }
 
 void DrawLights() {

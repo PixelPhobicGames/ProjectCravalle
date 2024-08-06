@@ -1,16 +1,19 @@
-#include "Editor.hpp"
 #include "Entities.hpp"
-#include "External/raygui/Style.h"
 #include "Misc.hpp"
-#include "OTVideo.hpp"
 #include "Player.hpp"
-#include "QMaps.hpp"
 
-#include "libPPG/Parasite/ParasiteScript.hpp"
+#include "External/raygui/Style.h"
+#include "External/rlights/rlights.h"
+
+#include "libPPG/F3D/Fast3D.hpp"
 #include "libPPG/ParticleDemon/ParticleDemon.hpp"
 #include "libPPG/Security/SigCheck.hpp"
 
-#include "External/rlights/rlights.h"
+#include "Modules/Parasite/ParasiteScript.hpp"
+#include "Modules/QMaps/QMaps.hpp"
+
+#include "Multimedia/OTVideo.hpp"
+
 #include "raylib.h"
 
 #include <chrono>

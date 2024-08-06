@@ -36,6 +36,8 @@
 
 # GameData 
 
+*.mp3
+
 Engine/OmegaTech3/GameData/
 Steel/.OTEData/Working/
 

@@ -6,7 +6,7 @@ ifeq ($(PLATFORM), Windows)
 
 else
     # Linux build settings
-	CFLAGS = --std=c++20 
+	CFLAGS = --std=c++20 -g
     LDFLAGS = -LSource/External -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -DLinux 
     COMP = g++
     BUILD_DIR = Build
@@ -33,7 +33,7 @@ all: $(BUILD_DIR)/OTENGINE
 $(BUILD_DIR)/OTENGINE: $(OBJS)
 	$(COMP) $(OBJS) -o OTENGINE $(CFLAGS) $(LDFLAGS)
 
-$(BUILD_DIR)/Main.o: Source/Main.cpp Source/*.hpp Source/libPPG/Parasite/*.hpp Source/libPPG/Language/*.hpp Source/CineFlow/*.hpp Source/Lumina/*.hpp
+$(BUILD_DIR)/Main.o: Source/Main.cpp Source/*.hpp Source/Modules/Parasite/*.hpp Source/libPPG/Language/*.hpp Source/Modules/CineFlow/*.hpp Source/Modules/Lumina/*.hpp
 	$(COMP) $(CFLAGS) -c Source/Main.cpp -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/PPGIO.o: Source/libPPG/PPGIO/PPGIO.cpp
@@ -45,11 +45,11 @@ $(BUILD_DIR)/Language.o: Source/libPPG/Language/Language.cpp
 $(BUILD_DIR)/Encoder.o: Source/libPPG/Encoder/Encoder.cpp
 	$(COMP) $(CFLAGS) -c Source/libPPG/Encoder/Encoder.cpp -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/Lumina.o: Source/Lumina/Lumina.cpp
-	$(COMP) $(CFLAGS) -c Source/Lumina/Lumina.cpp -o $@ $(LDFLAGS)
+$(BUILD_DIR)/Lumina.o: Source/Modules/Lumina/Lumina.cpp
+	$(COMP) $(CFLAGS) -c Source/Modules/Lumina/Lumina.cpp -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/cJSON.o: Source/Lumina/Json/cJSON.c
-	$(COMP) $(CFLAGS) -c Source/Lumina/Json/cJSON.c -o $@ $(LDFLAGS)
+$(BUILD_DIR)/cJSON.o: Source/Modules/Lumina/Json/cJSON.c
+	$(COMP) $(CFLAGS) -c Source/Modules/Lumina/Json/cJSON.c -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/SigCheck.o: Source/libPPG/Security/SigCheck.cpp
 	$(COMP) $(CFLAGS) -c Source/libPPG/Security/SigCheck.cpp -o $@ $(LDFLAGS)

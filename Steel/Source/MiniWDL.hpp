@@ -33,7 +33,6 @@ class Skybox{
             int doGamma = UseHDR ? 1 : 0;
             int vFlipped = UseHDR ? 1 : 0;
 
-            // Modify the problematic lines
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "environmentMap"), &materialMapCubemap, SHADER_UNIFORM_INT);
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "doGamma"), &doGamma, SHADER_UNIFORM_INT);
             SetShaderValue(SkyboxModel.materials[0].shader, GetShaderLocation(SkyboxModel.materials[0].shader, "vflipped"), &vFlipped, SHADER_UNIFORM_INT);
@@ -44,7 +43,7 @@ class Skybox{
             SetShaderValue(CubemapShader, GetShaderLocation(CubemapShader, "equirectangularMap"), &equirectangularMapValue, SHADER_UNIFORM_INT);
 
 
-            Image img = LoadImage(".OTEData/AppData/Shaders/skybox.png");
+            Image img = LoadImage(".OTEData/Working/Models/Skybox.png");
             SkyboxModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = LoadTextureCubemap(img, CUBEMAP_LAYOUT_AUTO_DETECT);    // CUBEMAP_LAYOUT_PANORAMA
             UnloadImage(img);
         }
@@ -123,6 +122,7 @@ class CollisionData {
 
 static int CachedCollisionCounter = 0;
 static CollisionData CachedCollision[MaxCachedModels];
+
 
 void InitMiniWDL(){
     ScenePreview = LoadRenderTexture(720, 600);
@@ -289,6 +289,7 @@ void GenTerrain(){
     HeightMapModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = HeightMapImagePreview;
     HeightMapModel.meshes[0] = Mesh1;
 
+
 }
 
 
@@ -305,12 +306,18 @@ void LoadData(){
             WDLModelData[i].Avaliable = true;
         }
 
+        if (IsPathFile(TextFormat(".OTEData/Working/Models/Model%i.gltf" , i))){
+            WDLModelData[i].Object = LoadModel(TextFormat(".OTEData/Working/Models/Model%i.gltf" , i));
+            WDLModelData[i].Avaliable = true;
+        }
+
         if (IsPathFile(TextFormat(".OTEData/Working/Models/Model%i.obj" , i))){
             WDLModelData[i].Object = LoadModel(TextFormat(".OTEData/Working/Models/Model%i.obj" , i));
             WDLModelData[i].ModelTexture = LoadTexture(TextFormat(".OTEData/Working/Models/Model%iTexture.png" , i));
             SetTextureFilter(WDLModelData[i].ModelTexture, TEXTURE_FILTER_TRILINEAR);
             WDLModelData[i].Object.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = WDLModelData[i].ModelTexture;
             WDLModelData[i].Avaliable = true;
+
         }
 
         if (!WDLModelData[i].Avaliable) {
@@ -377,10 +384,10 @@ float EditorW = 0.0f;
 float EditorH = 0.0f;
 float EditorL = 0.0f;
 
-float EditorScale = 0.0f;
+float EditorScale = 4.0f;
 float EditorRotation = 0.0f;
 
-int EditorMID = 2;
+int EditorMID = 1;
 
 bool EditorActive = false;
 
@@ -551,8 +558,6 @@ void RenderWDL(){
             RenderWindowFocused = false;
         }
 
-    }
-    else {
     }
     
 }

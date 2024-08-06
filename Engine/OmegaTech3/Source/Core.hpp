@@ -64,14 +64,14 @@ int LDropdownBoxActive = 0;
 
 void PlayHomeScreen() {
 
-    OTVideo HomeScreenVideo;
+    // OTVideo HomeScreenVideo;
     Music HomeScreenMusic;
     Texture2D Cursor;
     Texture2D TitleImage = LoadTexture("GameData/Global/Title/Title.png");
 
     int MousePoint = 0;
 
-    if (IsPathFile("GameData/Global/Title/Title.mpg")) HomeScreenVideo.Load("GameData/Global/Title/Title.mpg");
+    // if (IsPathFile("GameData/Global/Title/Title.mpg")) HomeScreenVideo.Load("GameData/Global/Title/Title.mpg");
 
     if (IsPathFile("GameData/Global/Title/Title.mp3")){
         HomeScreenMusic = LoadMusicStream("GameData/Global/Title/Title.mp3");
@@ -79,17 +79,18 @@ void PlayHomeScreen() {
     }
 
     if (IsPathFile("GameData/Global/Cursor.png")) Cursor = LoadTexture("GameData/Global/Cursor.png");
+    
 
     while (true && !WindowShouldClose()) {
+
+        if (IsMusicReady(HomeScreenMusic)) UpdateMusicStream(HomeScreenMusic);
+
         BeginTextureMode(OTCoreData.RenderTarget);
-        UpdateMusicStream(HomeScreenMusic);
 
         ClearBackground(BLACK);
 
-        if (OTInputController.InteractPressed) {
-            PlaySound(OTSoundData.UIClick);
-        }
-
+        if (OTInputController.InteractPressed) PlaySound(OTSoundData.UIClick);
+        
         DrawTexture(TitleImage, 0, 0, WHITE);
 
         GuiLine((Rectangle){144, 264, 216, 16}, NULL);
@@ -115,7 +116,8 @@ void PlayHomeScreen() {
 
             OTTextSystem.LanguageType = GlobalPackData.Type;
 
-            UnloadMusicStream(HomeScreenMusic);
+            if (IsMusicReady(HomeScreenMusic)) UnloadMusicStream(HomeScreenMusic);
+            
             UnloadTexture(Cursor);
             UnloadTexture(TitleImage);
             
@@ -146,7 +148,8 @@ void PlayHomeScreen() {
 
             OTTextSystem.LanguageType = GlobalPackData.Type;
 
-            UnloadMusicStream(HomeScreenMusic);
+            if (IsMusicReady(HomeScreenMusic))UnloadMusicStream(HomeScreenMusic);
+
             UnloadTexture(Cursor);
             UnloadTexture(TitleImage);
 
@@ -165,30 +168,12 @@ void PlayHomeScreen() {
                        (Vector2){0, 0},
                        0.f,
                        WHITE);
-
-        if (IsGamepadAvailable(0)) {
-            if (MousePoint == 0) {
-                DrawTextureEx(Cursor, {168 + 176 + 5, 256 - 48}, 0.0f, 3, WHITE);
-
-                if (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) >= 0.25f) {
-                    MousePoint = 1;
-                }
-            } else {
-                DrawTextureEx(Cursor, {144 + 176 + 5, 288}, 0.0f, 3, WHITE);
-
-                if (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) <= 0.25f) {
-                    MousePoint = 0;
-                }
-            }
-        }
-
         EndDrawing();
 
         if (IsKeyPressed(KEY_ESCAPE)) exit(0);
     }
 
-    StopMusicStream(HomeScreenMusic);
-
+    if (IsMusicReady(HomeScreenMusic)) StopMusicStream(HomeScreenMusic);
 }
 
 
@@ -243,9 +228,7 @@ void DrawWorld() {
         BeginMode3D(CineFlowData.CFCamera);
     }
 
-    if (OTSoundData.MusicFound) {
-        UpdateMusicStream(OTSoundData.BackgroundMusic);
-    }
+    if (IsMusicReady(OTSoundData.BackgroundMusic)) UpdateMusicStream(OTSoundData.BackgroundMusic);
 
     UpdateNoiseEmitters();
 

@@ -161,7 +161,7 @@ void CWDLProcess() {
                     }
                     break;
                 case -1:
-                    DrawModelEx(TerrainData.HeightMap, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
+                    FDrawModelEx(OTCoreData.RenderCamera, TerrainData.HeightMap, {X, Y, Z}, {0, Rotation, 0}, Rotation, {S, S, S}, FadeColor);
                     break;
             }
         }
@@ -408,9 +408,9 @@ void WDLProcess() {
 }
 
 void UpdateNoiseEmitters() {
-    UpdateMusicStream(OTSoundData.NESound1);
-    UpdateMusicStream(OTSoundData.NESound2);
-    UpdateMusicStream(OTSoundData.NESound3);
+    if ( IsMusicReady(OTSoundData.NESound1) ) UpdateMusicStream(OTSoundData.NESound1);
+    if ( IsMusicReady(OTSoundData.NESound2) )UpdateMusicStream(OTSoundData.NESound2);
+    if ( IsMusicReady(OTSoundData.NESound3) )UpdateMusicStream(OTSoundData.NESound3);
 }
 
 
@@ -651,16 +651,11 @@ void LoadWorldData() {
 }
 
 void LoadBackgroundMusic() {
-    if (OTSoundData.MusicFound)
-        StopMusicStream(OTSoundData.BackgroundMusic);
-
-    OTSoundData.MusicFound = false;
+    if (IsMusicReady(OTSoundData.BackgroundMusic)) StopMusicStream(OTSoundData.BackgroundMusic);
 
     if (IsPathFile(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OTCoreData.LevelIndex))) {
-        OTSoundData.BackgroundMusic =
-            LoadMusicStream(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OTCoreData.LevelIndex));
-        OTSoundData.MusicFound = true;
-        PlayMusicStream(OTSoundData.BackgroundMusic);
+        if (IsMusicReady(OTSoundData.BackgroundMusic)) OTSoundData.BackgroundMusic = LoadMusicStream(TextFormat("GameData/Worlds/World%i/Music/Main.mp3", OTCoreData.LevelIndex));
+        if (IsMusicReady(OTSoundData.BackgroundMusic)) PlayMusicStream(OTSoundData.BackgroundMusic);
     }
 }
 
